@@ -115,18 +115,6 @@ export default function PodYamlAssessmentPage() {
   useEffect(() => {
     setTaskStatus((prev) => deriveYamlTasks(yaml, prev));
   }, [yaml]);
-
-  if (!lesson) {
-    return (
-      <main className="min-h-screen bg-[#0d1117] p-6">
-        <Link href="/assessments" className="text-[#3fb950] hover:underline">
-          ← Back to assessments
-        </Link>
-        <p className="text-gray-400 mt-4">Pod YAML assessment not available.</p>
-      </main>
-    );
-  }
-
   const journeyId = "kubernetes:pod-yaml";
   const isCompleted =
     profile?.completed.some((item) => item.id === journeyId) ?? false;
@@ -136,6 +124,7 @@ export default function PodYamlAssessmentPage() {
   const allTasksDone = completedCount === totalTasks;
 
   useEffect(() => {
+    if (!lesson) return;
     if (!profile) return;
     if (isCompleted) return;
     if (!allTasksDone) return;
@@ -144,7 +133,7 @@ export default function PodYamlAssessmentPage() {
       id: journeyId,
       kind: "assessment",
     });
-  }, [allTasksDone, isCompleted, journeyId, markCompleted, profile]);
+  }, [allTasksDone, isCompleted, journeyId, markCompleted, profile, lesson]);
 
   const handleCommand = (cmd: string) => {
     setLastCommand(cmd);
@@ -170,6 +159,17 @@ export default function PodYamlAssessmentPage() {
       return next;
     });
   };
+
+  if (!lesson) {
+    return (
+      <main className="min-h-screen bg-[#0d1117] p-6">
+        <Link href="/assessments" className="text-[#3fb950] hover:underline">
+          ← Back to assessments
+        </Link>
+        <p className="text-gray-400 mt-4">Pod YAML assessment not available.</p>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#0d1117]">

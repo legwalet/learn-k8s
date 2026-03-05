@@ -100,28 +100,20 @@ export default function KubernetesLessonPage() {
     );
   }, [lesson, setContext]);
 
-  if (!lesson) {
-    return (
-      <main className="min-h-screen bg-[#0d1117] p-6">
-        <Link href="/learn/kubernetes" className="text-[#3fb950] hover:underline">
-          ← Back to Kubernetes
-        </Link>
-        <p className="text-gray-400 mt-4">Lesson not found.</p>
-      </main>
-    );
-  }
-
-  const journeyId = `kubernetes:${lesson.id}`;
+  const journeyId = lesson ? `kubernetes:${lesson.id}` : "";
   const isCompleted =
-    profile?.completed.some((item) => item.id === journeyId) ?? false;
+    journeyId && profile
+      ? profile.completed.some((item) => item.id === journeyId)
+      : false;
 
-  const assessmentTasks = getAssessmentTasksForLesson(lesson.id);
+  const assessmentTasks = lesson ? getAssessmentTasksForLesson(lesson.id) : [];
   const totalTasks = assessmentTasks.length;
   const completedCount = assessmentTasks.filter((t) => completedTasks[t.id]).length;
   const allTasksDone = totalTasks > 0 && completedCount === totalTasks;
 
   // Automatically mark this assessment complete when all interactive tasks are done.
   useEffect(() => {
+    if (!lesson) return;
     if (!profile) return;
     if (isCompleted) return;
     if (!allTasksDone) return;
@@ -130,7 +122,7 @@ export default function KubernetesLessonPage() {
       id: journeyId,
       kind: "assessment",
     });
-  }, [allTasksDone, isCompleted, journeyId, markCompleted, profile]);
+  }, [allTasksDone, isCompleted, journeyId, markCompleted, profile, lesson]);
 
   const handleKubectlCommand = (cmd: string) => {
     setLastCommand(cmd);
@@ -141,7 +133,7 @@ export default function KubernetesLessonPage() {
     setCompletedTasks((prev) => {
       const next = { ...prev };
 
-      if (lesson.id === "kubectl-get" || lesson.id === "intro") {
+      if (lessonId === "kubectl-get" || lessonId === "intro") {
         if (
           normalized === "kubectl get pods" ||
           normalized.startsWith("kubectl get pods ")
@@ -167,6 +159,17 @@ export default function KubernetesLessonPage() {
       return next;
     });
   };
+
+  if (!lesson) {
+    return (
+      <main className="min-h-screen bg-[#0d1117] p-6">
+        <Link href="/learn/kubernetes" className="text-[#3fb950] hover:underline">
+          ← Back to Kubernetes
+        </Link>
+        <p className="text-gray-400 mt-4">Lesson not found.</p>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#0d1117]">
