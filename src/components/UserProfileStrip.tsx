@@ -93,10 +93,10 @@ export default function UserProfileStrip() {
             Journey (progress) →
           </Link>
           <Link
-            href="/assessments"
+            href="/exams"
             className="inline-flex items-center gap-1 text-[11px] font-medium text-[#3fb950] hover:underline"
           >
-            Assessments & tests →
+            Exams & tests →
           </Link>
         </div>
       </div>

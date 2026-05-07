@@ -41,8 +41,8 @@ export default function ScenarioAssessmentPage() {
   if (!scenario) {
     return (
       <main className="min-h-screen bg-[#0d1117] p-6">
-        <Link href="/assessments" className="text-[#3fb950] hover:underline">
-          ← Back to assessments
+        <Link href="/exams" className="text-[#3fb950] hover:underline">
+          ← Back to exams
         </Link>
         <p className="mt-4 text-gray-400">Scenario not found.</p>
       </main>
@@ -80,11 +80,11 @@ export default function ScenarioAssessmentPage() {
 
         <div className="mt-4 rounded-lg border border-[#3fb950]/40 bg-[#050810] px-3 py-2 text-xs text-gray-200">
           <span className="rounded-full bg-gray-800 px-2 py-0.5 text-[11px] text-gray-300">
-            Progress: {completedCount} / {totalTasks}
+            Exam progress: {completedCount} / {totalTasks}
           </span>
           {allDone && (
             <span className="ml-2 rounded-full bg-[#1f6f3f] px-2 py-0.5 text-[11px] text-[#c9fdd7]">
-              Scenario complete
+              Exam passed
             </span>
           )}
           {allDone && nextStep && (
@@ -99,8 +99,8 @@ export default function ScenarioAssessmentPage() {
 
         <div className="mt-4">
           <DragDropAssessment
-            title="Interactive checkpoint"
-            subtitle="Drag the right command to the current task. Complete tasks in sequence."
+            title="Interactive exam"
+            subtitle="Drag the right command to each task. Complete in sequence to pass."
             options={scenario.commands}
             tasks={scenario.tasks.map((task) => ({ id: task.id, label: task.label }))}
             completedTaskIds={completedTasks}
@@ -116,7 +116,7 @@ export default function ScenarioAssessmentPage() {
         </p>
         {allDone && !nextStep && (
           <p className="mt-2 text-xs text-[#c9fdd7]">
-            Journey checkpoint complete. You&apos;ve reached the final step in this Kubernetes flow.
+            Final exam passed. You&apos;ve reached the end of this Kubernetes flow.
           </p>
         )}
       </div>

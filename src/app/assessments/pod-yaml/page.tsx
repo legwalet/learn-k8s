@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import { kubernetesLessons } from "@/data/lessons";
 import { useUserProgress } from "@/components/UserProgressContext";
 import { useLessonAssistantContext } from "@/components/GlobalAssistantShell";
+import SimulatedK8Terminal from "@/components/SimulatedK8Terminal";
 
 const CodeEditorClient = dynamic(() => import("@/components/CodeEditor"), {
   ssr: false,
@@ -13,13 +14,6 @@ const CodeEditorClient = dynamic(() => import("@/components/CodeEditor"), {
     <div className="rounded-lg border border-gray-800 bg-[#0d1117] h-full min-h-[200px] animate-pulse" />
   ),
 });
-
-const SimulatedK8TerminalClient = dynamic(
-  () => import("@/components/SimulatedK8Terminal"),
-  {
-    ssr: false,
-  }
-);
 
 type PodYamlTaskId = "label-tier-frontend" | "image-updated" | "apply-pod" | "get-pods";
 
@@ -263,7 +257,7 @@ export default function PodYamlAssessmentPage() {
 
           <div className="space-y-3 min-w-0">
             <div>
-              <SimulatedK8TerminalClient onCommand={handleCommand} />
+              <SimulatedK8Terminal onCommand={handleCommand} />
             </div>
             {lastCommand && (
               <p className="text-[11px] text-gray-500">

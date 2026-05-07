@@ -31,14 +31,42 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
 (function() {
+  var WEBPACK_RELOAD_KEY = 'k8learn:webpack-stale-reload-once';
   function isDimensionsError(msg, stack) {
     if (!msg) return false;
     if (msg.indexOf('dimensions') !== -1 || msg.indexOf("reading 'dimensions'") !== -1) return true;
     if (stack && stack.indexOf('xterm') !== -1 && msg.indexOf('undefined') !== -1) return true;
     return false;
   }
+  /** Stale / mismatched JS chunks (e.g. old tab after deploy, multiple dev servers, corrupt .next). */
+  function looksLikeStaleWebpackChunk(msg, stack) {
+    msg = String(msg || '');
+    stack = String(stack || '');
+    if (msg.indexOf("reading 'call'") === -1) return false;
+    return stack.indexOf('__webpack_require__') !== -1
+      || stack.indexOf('webpack-runtime') !== -1
+      || stack.indexOf('webpack.js') !== -1;
+  }
+  function tryWebpackRecovery(msg, stack) {
+    if (!looksLikeStaleWebpackChunk(msg, stack)) return false;
+    try {
+      if (sessionStorage.getItem(WEBPACK_RELOAD_KEY)) return false;
+      sessionStorage.setItem(WEBPACK_RELOAD_KEY, '1');
+      window.setTimeout(function () { window.location.reload(); }, 0);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
   window.addEventListener('error', function(e) {
-    if (isDimensionsError(e.message, e.error && e.error.stack)) {
+    var stack = String(e.error && e.error.stack || '');
+    var msg = String(e.message || '');
+    if (isDimensionsError(msg, stack)) {
+      e.preventDefault();
+      e.stopPropagation();
+      return true;
+    }
+    if (tryWebpackRecovery(msg, stack)) {
       e.preventDefault();
       e.stopPropagation();
       return true;
@@ -46,7 +74,10 @@ export default function RootLayout({
   }, true);
   var prev = window.onerror;
   window.onerror = function(msg, source, lineno, colno, err) {
-    if (isDimensionsError(msg, err && err.stack)) return true;
+    var stack = String(err && err.stack || '');
+    var m = typeof msg === 'string' ? msg : '';
+    if (isDimensionsError(m, stack)) return true;
+    if (tryWebpackRecovery(m, stack)) return true;
     return prev ? prev(msg, source, lineno, colno, err) : false;
   };
 })();

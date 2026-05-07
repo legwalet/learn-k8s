@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import K8ArchitectureViz from "@/components/K8ArchitectureViz";
 import DragDropAssessment from "@/components/DragDropAssessment";
+import SimulatedK8Terminal from "@/components/SimulatedK8Terminal";
 import { useLessonAssistantContext } from "@/components/GlobalAssistantShell";
 import { kubernetesLessons } from "@/data/lessons";
 import { useUserProgress } from "@/components/UserProgressContext";
@@ -20,13 +21,6 @@ const CodeEditorClient = dynamic(() => import("@/components/CodeEditor"), {
     <div className="rounded-lg border border-gray-800 bg-[#0d1117] h-full min-h-[200px] animate-pulse" />
   ),
 });
-
-const SimulatedK8TerminalClient = dynamic(
-  () => import("@/components/SimulatedK8Terminal"),
-  {
-    ssr: false,
-  }
-);
 
 type AssessmentTask = {
   id: string;
@@ -123,6 +117,10 @@ function getAssessmentCommandOptions(lessonId: string): AssessmentCommandOption[
   return [];
 }
 
+/** Same shell as interactive practice modules — keeps lesson reading + practice visually consistent. */
+const lessonScenarioPanelClass =
+  "mb-4 flex flex-col gap-2 rounded-lg border border-[#3fb950]/40 bg-[#050810] px-3 py-2 text-xs text-gray-200";
+
 export default function KubernetesLessonPage() {
   const params = useParams();
   const lessonId = params?.lessonId as string;
@@ -172,7 +170,19 @@ export default function KubernetesLessonPage() {
     setTaskFeedback(`Task complete: ${label}`);
   };
 
-  // Automatically mark this assessment complete when all interactive tasks are done.
+  // Hydrate interactive task UI when this lesson was already saved as complete (fixes 0/X vs passed).
+  useEffect(() => {
+    if (!lesson) return;
+    const tasks = getAssessmentTasksForLesson(lesson.id);
+    if (tasks.length === 0 || !isCompleted) return;
+    setCompletedTasks((prev) => {
+      const next = { ...prev };
+      for (const t of tasks) next[t.id] = true;
+      return next;
+    });
+  }, [lesson?.id, isCompleted]);
+
+  // Lessons page = lesson progress only (counts as a lesson completion, same journey id).
   useEffect(() => {
     if (!lesson) return;
     if (!profile) return;
@@ -181,7 +191,7 @@ export default function KubernetesLessonPage() {
 
     markCompleted({
       id: journeyId,
-      kind: "assessment",
+      kind: "lesson",
     });
   }, [allTasksDone, isCompleted, journeyId, markCompleted, profile, lesson]);
 
@@ -240,10 +250,18 @@ export default function KubernetesLessonPage() {
         <h1 className="text-2xl font-bold text-white mb-1">{lesson.title}</h1>
         <p className="text-gray-400 text-sm mb-2">{lesson.description}</p>
         {isLearningOnlyLesson && (
-          <div className="mb-4 rounded-lg border border-[#58a6ff]/30 bg-[#050810] px-3 py-2 text-xs text-gray-300">
-            <p>
-              This lesson is concept-first. Mark it complete when you finish reading/practicing to
-              unlock the next checkpoint.
+          <div className={`${lessonScenarioPanelClass} border-[#58a6ff]/40`}>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-gray-800 px-2 py-0.5 text-[11px] text-gray-300">
+                Lesson practice
+              </span>
+              <span className="text-[11px] text-gray-500">
+                Concept-first — no graded command checklist on this page.
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-400">
+              <span className="font-semibold text-gray-300">Scenario: </span>
+              Work through the lesson content below, try the YAML and terminal when it helps, then mark the lesson complete to continue your journey.
             </p>
             {profile && !isCompleted && (
               <button
@@ -277,22 +295,24 @@ export default function KubernetesLessonPage() {
           </div>
         )}
         {lesson.id === "pod-yaml" && (
-          <div className="mb-4 rounded-lg border border-[#3fb950]/40 bg-[#050810] px-3 py-2 text-xs text-gray-200">
-            <p className="text-[11px] text-gray-300">
-              This page is for **learning** how Pod YAML works. When you&apos;re ready to be tested,
-              use the separate{" "}
-              <Link
-                href="/assessments/pod-yaml"
-                className="text-[#3fb950] hover:underline font-medium"
-              >
-                Pod YAML deployment assessment
+          <div className={lessonScenarioPanelClass}>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-gray-800 px-2 py-0.5 text-[11px] text-gray-300">
+                Related exam
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-400">
+              <span className="font-semibold text-gray-300">Scenario: </span>
+              This page is for learning how Pod YAML works. When you want a graded check, open the{" "}
+              <Link href="/assessments/pod-yaml" className="text-[#3fb950] hover:underline font-medium">
+                Pod YAML deployment check
               </Link>{" "}
-              to complete the real-life scenario and earn points.
+              under Exams.
             </p>
           </div>
         )}
         {assessmentTasks.length > 0 && (
-          <div className="mb-4 flex flex-col gap-2 rounded-lg border border-[#3fb950]/40 bg-[#050810] px-3 py-2 text-xs text-gray-200">
+          <div className={lessonScenarioPanelClass}>
             <div className="flex flex-wrap items-center gap-2">
               <span
                 className={`rounded-full px-2 py-0.5 text-[11px] ${
@@ -304,20 +324,20 @@ export default function KubernetesLessonPage() {
                 }`}
               >
                 {isCompleted
-                  ? "Assessment passed"
+                  ? "Lesson practice complete"
                   : allTasksDone
                     ? "All tasks complete — saving…"
-                    : "Assessment in progress"}
+                    : "Lesson practice in progress"}
               </span>
               <span className="text-[11px] text-gray-400">
                 Tasks completed: {completedCount} / {totalTasks}
               </span>
             </div>
             <p className="text-[11px] text-gray-400">
-              Scenario: you are on call for a real cluster. Use{" "}
-              <code className="text-[#3fb950]">kubectl</code> in the terminal to
-              investigate what&apos;s running, just like you would in production.
-              The assessment is only passed once all tasks below are completed.
+              <span className="font-semibold text-gray-300">Scenario: </span>
+              You are practicing on a simulated cluster as part of this lesson. Use{" "}
+              <code className="text-[#3fb950]">kubectl</code> in the terminal (or drag-and-drop below)
+              to complete each step in order. This lesson is marked complete once every task below is done.
             </p>
             <ul className="mt-1 space-y-1">
               {assessmentTasks.map((task) => {
@@ -360,8 +380,9 @@ export default function KubernetesLessonPage() {
         {assessmentTasks.length > 0 && assessmentOptions.length > 0 && (
           <div className="mb-4">
             <DragDropAssessment
-              title="Drag and drop assessment"
-              subtitle="Match each task with the correct kubectl command. Tasks unlock one-by-one."
+              variant="lesson"
+              title="Drag and drop lesson practice"
+              subtitle="Match each lesson task with the right kubectl command. Tasks unlock one at a time."
               options={assessmentOptions}
               tasks={assessmentTasks}
               completedTaskIds={completedTasks}
@@ -386,14 +407,31 @@ export default function KubernetesLessonPage() {
           </span>
         </div>
 
-        <div
-          className="prose prose-invert prose-sm max-w-none mb-6 p-4 rounded-lg bg-[#161b22] border border-gray-700 text-gray-300"
-          dangerouslySetInnerHTML={{
-            __html: lesson.instructions
-              .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-              .replace(/`(.*?)`/g, "<code class='text-[#3fb950]'>$1</code>"),
-          }}
-        />
+        <div className={`${lessonScenarioPanelClass} mb-6`}>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-gray-800 px-2 py-0.5 text-[11px] text-gray-300">
+              Lesson content
+            </span>
+            <span className="text-[11px] text-gray-500">
+              Read this scenario, then use the YAML editor and terminal below.
+            </span>
+          </div>
+          <p className="text-[11px] text-gray-400">
+            <span className="font-semibold text-gray-300">Scenario: </span>
+            {assessmentTasks.length > 0
+              ? "Study the concepts and commands in this lesson. They align with the interactive practice tasks above and the simulator below."
+              : "Study the concepts and commands in this lesson. Use the YAML editor and simulated terminal below to reinforce what you read."}
+          </p>
+          <div
+            className="lesson-instructions prose prose-invert prose-sm max-w-none mt-2 border-t border-gray-800 pt-3 text-gray-300"
+            dangerouslySetInnerHTML={{
+              __html: lesson.instructions
+                .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+                .replace(/`(.*?)`/g, "<code class='text-[#3fb950]'>$1</code>")
+                .replace(/\n/g, "<br />"),
+            }}
+          />
+        </div>
 
         <div className="grid gap-4 mb-4 md:grid-cols-[minmax(0,2fr),minmax(0,1.1fr)]">
           <div className="min-w-0">
@@ -426,7 +464,7 @@ export default function KubernetesLessonPage() {
 
           <div className="space-y-3 min-w-0">
             <div>
-              <SimulatedK8TerminalClient onCommand={(cmd: string) => handleKubectlCommand(cmd)} />
+              <SimulatedK8Terminal onCommand={(cmd: string) => handleKubectlCommand(cmd)} />
             </div>
           </div>
         </div>

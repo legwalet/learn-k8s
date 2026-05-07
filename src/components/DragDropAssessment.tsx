@@ -13,6 +13,8 @@ type DragDropTask = {
 type DragDropAssessmentProps = {
   title: string;
   subtitle?: string;
+  /** `lesson` = copy for /learn/kubernetes pages; `exam` = exam pages */
+  variant?: "lesson" | "exam";
   options: DragDropOption[];
   tasks: DragDropTask[];
   completedTaskIds: Record<string, boolean>;
@@ -24,6 +26,7 @@ type DragDropAssessmentProps = {
 export default function DragDropAssessment({
   title,
   subtitle,
+  variant = "exam",
   options,
   tasks,
   completedTaskIds,
@@ -88,8 +91,12 @@ export default function DragDropAssessment({
                 {done
                   ? "Completed"
                   : isCurrent
-                    ? "Drop the matching command here."
-                    : "Locked until the current task is complete."}
+                    ? variant === "lesson"
+                      ? "Drop the matching kubectl command here for this lesson step."
+                      : "Drop the matching command here."
+                    : variant === "lesson"
+                      ? "Complete the current lesson step first."
+                      : "Locked until the current task is complete."}
               </p>
             </div>
           );

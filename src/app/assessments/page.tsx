@@ -26,7 +26,7 @@ export default function AssessmentsPage() {
           ← Home
         </Link>
 
-        <h1 className="text-3xl font-bold text-white mb-2">Assessments & tests</h1>
+        <h1 className="text-3xl font-bold text-white mb-2">Exams & tests</h1>
         <p className="text-gray-400 mb-4 text-sm">
           Use these when you want to **check understanding**. Learning pages focus on explaining
           ideas. Assessment pages focus on doing tasks that the program can verify automatically.
@@ -37,10 +37,10 @@ export default function AssessmentsPage() {
         <div className="mt-4 space-y-8">
           <section>
             <h2 className="text-xl font-semibold text-white mb-2">
-              Kubernetes assessments
+              Kubernetes exams
             </h2>
             <p className="text-[13px] text-gray-400 mb-3">
-              Scenario-based checks using the simulated{" "}
+              Exam-style checks using the simulated{" "}
               <code className="text-gray-300">kubectl</code> terminal. These map to specific
               Kubernetes lessons but focus on whether you can **use** the commands in a realistic
               situation.
@@ -59,7 +59,7 @@ export default function AssessmentsPage() {
                           className="block rounded-lg border border-[#3fb950]/40 bg-[#102118]/30 p-4 text-white hover:border-[#3fb950]/70"
                         >
                           <p className="text-[11px] font-semibold uppercase tracking-wide text-[#3fb950]">
-                            Interactive scenario checkpoint
+                            Interactive exam
                           </p>
                           <p className="mt-1 font-medium">{scenario.title}</p>
                           <p className="mt-1 text-[13px] text-gray-400">{scenario.description}</p>

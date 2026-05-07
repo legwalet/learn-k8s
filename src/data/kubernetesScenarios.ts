@@ -672,3 +672,46 @@ export const scenarioDifficultyOrder: KubernetesScenario["difficulty"][] = [
   "Security/Cost",
 ];
 
+/** Single teaching path through real-world topics (Learn → Topics). Same difficulty tiers, stable order inside each. */
+export function getKubernetesTopicsInTeachingOrder(): KubernetesScenario[] {
+  const out: KubernetesScenario[] = [];
+  for (const d of scenarioDifficultyOrder) {
+    for (const s of kubernetesScenarios) {
+      if (s.difficulty === d) out.push(s);
+    }
+  }
+  return out;
+}
+
+export function topicProgressId(scenarioId: string): string {
+  return `topic:${scenarioId}`;
+}
+
+export function getTeachingTopicUnlockState(
+  scenarioId: string,
+  completedIds: ReadonlySet<string>
+): {
+  unlocked: boolean;
+  previousTopicTitle: string | null;
+  previousTopicId: string | null;
+} {
+  const order = getKubernetesTopicsInTeachingOrder();
+  const idx = order.findIndex((s) => s.id === scenarioId);
+  if (idx < 0) return { unlocked: false, previousTopicTitle: null, previousTopicId: null };
+  if (idx === 0) return { unlocked: true, previousTopicTitle: null, previousTopicId: null };
+  const prev = order[idx - 1];
+  const unlocked = completedIds.has(topicProgressId(prev.id));
+  return {
+    unlocked,
+    previousTopicTitle: prev.title.replace(/^Scenario:\s*/i, "").trim() || prev.title,
+    previousTopicId: prev.id,
+  };
+}
+
+export function getNextTeachingTopicHref(currentScenarioId: string): string | null {
+  const order = getKubernetesTopicsInTeachingOrder();
+  const idx = order.findIndex((s) => s.id === currentScenarioId);
+  if (idx < 0 || idx >= order.length - 1) return null;
+  return `/learn/kubernetes/topics/${order[idx + 1].id}`;
+}
+
