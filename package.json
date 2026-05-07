@@ -2,6 +2,9 @@
   "name": "k8-learn",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.12.2"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -16,6 +19,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@netlify/plugin-nextjs": "^5.15.10",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

@@ -1,7 +1,14 @@
+# Next.js App Router + API routes + middleware use Netlify’s OpenNext adapter.
+# Dashboard: Site settings → Build & deploy → set env OPENAI_API_KEY (optional tutor).
+
 [build]
   command = "npm run build"
-  publish = ".next"
 
 [build.environment]
   NODE_VERSION = "20"
 
+# Optional: Site settings → Env → NETLIFY_NEXT_SKEW_PROTECTION=true reduces chunk
+# mismatch errors for visitors mid-session when you ship a new deploy.
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
