@@ -47,7 +47,7 @@ export default function LessonAssistant({ context, className = "" }: LessonAssis
       const reply = data.reply ?? "I could not generate a response right now.";
 
       setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
-    } catch (err) {
+    } catch {
       setError("AI helper is not available right now. Check server logs or API key configuration.");
     } finally {
       setLoading(false);

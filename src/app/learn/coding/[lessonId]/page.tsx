@@ -124,6 +124,16 @@ function updateTaskStatusForLesson(
   return next;
 }
 
+function evaluateSingleTask(
+  taskId: string,
+  lessonId: string,
+  code: string,
+  hasJustRun: boolean
+): boolean {
+  const status = updateTaskStatusForLesson(lessonId, code, hasJustRun, {});
+  return !!status[taskId];
+}
+
 export default function CodingLessonPage() {
   const params = useParams();
   const lessonId = params?.lessonId as string;
@@ -149,28 +159,6 @@ export default function CodingLessonPage() {
     );
   }, [lesson, setContext]);
 
-  const handleRun = useCallback(() => {
-    runFromEditorRef.current?.(code);
-    if (!lesson) return;
-
-    setTaskStatus((prev) => updateTaskStatusForLesson(lesson.id, code, true, prev));
-
-    const tasks = getCodingAssessmentTasks(lesson.id);
-    const updated = updateTaskStatusForLesson(lesson.id, code, true, taskStatus);
-    const total = tasks.length;
-    const done = tasks.filter((t) => updated[t.id]).length;
-
-    if (total > 0 && done === total) {
-      setAssessmentMessage("All tasks passed for this coding assessment. Great job!");
-    } else if (total > 0) {
-      setAssessmentMessage(
-        `Assessment in progress — ${done} of ${total} tasks passed. Check the list below.`
-      );
-    } else {
-      setAssessmentMessage(null);
-    }
-  }, [code, lesson, taskStatus]);
-
   const journeyId = lesson ? `coding:${lesson.id}` : "";
   const isCompleted =
     journeyId && profile
@@ -181,6 +169,37 @@ export default function CodingLessonPage() {
   const totalTasks = assessmentTasks.length;
   const completedCount = assessmentTasks.filter((t) => taskStatus[t.id]).length;
   const allTasksDone = totalTasks > 0 && completedCount === totalTasks;
+  const currentTask = assessmentTasks.find((task) => !taskStatus[task.id]) ?? null;
+
+  const handleRun = useCallback(() => {
+    runFromEditorRef.current?.(code);
+    if (!lesson) return;
+    if (assessmentTasks.length === 0) {
+      setAssessmentMessage(null);
+      return;
+    }
+
+    if (!currentTask) {
+      setAssessmentMessage("All tasks passed for this coding assessment. Great job!");
+      return;
+    }
+
+    const passedCurrentTask = evaluateSingleTask(currentTask.id, lesson.id, code, true);
+    if (!passedCurrentTask) {
+      setAssessmentMessage(`Finish the current task first: ${currentTask.label}`);
+      return;
+    }
+
+    setTaskStatus((prev) => ({ ...prev, [currentTask.id]: true }));
+    const nextCompletedCount = completedCount + 1;
+    if (nextCompletedCount === assessmentTasks.length) {
+      setAssessmentMessage("All tasks passed for this coding assessment. Great job!");
+    } else {
+      setAssessmentMessage(
+        `Task complete. Move to the next requirement (${nextCompletedCount}/${assessmentTasks.length}).`
+      );
+    }
+  }, [assessmentTasks.length, code, completedCount, currentTask, lesson]);
 
   // Automatically mark this coding lesson as a passed assignment/test when all tasks are done.
   useEffect(() => {
@@ -249,14 +268,28 @@ export default function CodingLessonPage() {
               met and you run the code from the editor.
             </p>
             <ul className="mt-1 space-y-1">
-              {assessmentTasks.map((task) => (
-                <li key={task.id} className="flex items-start gap-2">
-                  <span className="mt-[2px] text-[11px]">
-                    {taskStatus[task.id] ? "✅" : "⬜"}
-                  </span>
-                  <span className="text-[11px] text-gray-200">{task.label}</span>
-                </li>
-              ))}
+              {assessmentTasks.map((task) => {
+                const done = taskStatus[task.id];
+                const isCurrent = !done && currentTask?.id === task.id;
+                return (
+                  <li key={task.id} className="flex items-start gap-2">
+                    <span className="mt-[2px] text-[11px]">
+                      {done ? "✅" : isCurrent ? "➡️" : "🔒"}
+                    </span>
+                    <span
+                      className={`text-[11px] ${
+                        done
+                          ? "text-gray-200"
+                          : isCurrent
+                            ? "text-[#e5ffef]"
+                            : "text-gray-500"
+                      }`}
+                    >
+                      {task.label}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
             {assessmentMessage && (
               <p className="mt-1 text-[11px] text-gray-400">{assessmentMessage}</p>

@@ -5,9 +5,14 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import K8ArchitectureViz from "@/components/K8ArchitectureViz";
+import DragDropAssessment from "@/components/DragDropAssessment";
 import { useLessonAssistantContext } from "@/components/GlobalAssistantShell";
 import { kubernetesLessons } from "@/data/lessons";
 import { useUserProgress } from "@/components/UserProgressContext";
+import {
+  getKubernetesStepHref,
+  getNextKubernetesStep,
+} from "@/data/kubernetesScenarios";
 
 const CodeEditorClient = dynamic(() => import("@/components/CodeEditor"), {
   ssr: false,
@@ -24,6 +29,11 @@ const SimulatedK8TerminalClient = dynamic(
 );
 
 type AssessmentTask = {
+  id: string;
+  label: string;
+};
+
+type AssessmentCommandOption = {
   id: string;
   label: string;
 };
@@ -74,6 +84,45 @@ function normalizeCommand(cmd: string): string {
   return cleaned.toLowerCase().replace(/\s+/g, " ");
 }
 
+function commandMatchesTask(taskId: string, normalized: string): boolean {
+  if (taskId === "pods") {
+    return (
+      normalized === "kubectl get pods" || normalized.startsWith("kubectl get pods ")
+    );
+  }
+  if (taskId === "nodes") {
+    return (
+      normalized === "kubectl get nodes" || normalized.startsWith("kubectl get nodes ")
+    );
+  }
+  if (taskId === "deployments") {
+    return (
+      normalized === "kubectl get deployments" ||
+      normalized === "kubectl get deployment" ||
+      normalized.startsWith("kubectl get deployments ") ||
+      normalized.startsWith("kubectl get deployment ")
+    );
+  }
+  return false;
+}
+
+function getAssessmentCommandOptions(lessonId: string): AssessmentCommandOption[] {
+  if (lessonId === "intro") {
+    return [
+      { id: "pods", label: "kubectl get pods" },
+      { id: "nodes", label: "kubectl get nodes" },
+    ];
+  }
+  if (lessonId === "kubectl-get") {
+    return [
+      { id: "pods", label: "kubectl get pods" },
+      { id: "nodes", label: "kubectl get nodes" },
+      { id: "deployments", label: "kubectl get deployments" },
+    ];
+  }
+  return [];
+}
+
 export default function KubernetesLessonPage() {
   const params = useParams();
   const lessonId = params?.lessonId as string;
@@ -83,6 +132,7 @@ export default function KubernetesLessonPage() {
   const [lastCommand, setLastCommand] = useState<string | null>(null);
   const [yamlRunHint, setYamlRunHint] = useState<string | null>(null);
   const [completedTasks, setCompletedTasks] = useState<Record<string, boolean>>({});
+  const [taskFeedback, setTaskFeedback] = useState<string | null>(null);
   const { setContext } = useLessonAssistantContext();
   const { profile, markCompleted } = useUserProgress();
 
@@ -107,9 +157,20 @@ export default function KubernetesLessonPage() {
       : false;
 
   const assessmentTasks = lesson ? getAssessmentTasksForLesson(lesson.id) : [];
+  const assessmentOptions = lesson ? getAssessmentCommandOptions(lesson.id) : [];
   const totalTasks = assessmentTasks.length;
   const completedCount = assessmentTasks.filter((t) => completedTasks[t.id]).length;
   const allTasksDone = totalTasks > 0 && completedCount === totalTasks;
+  const currentTask = assessmentTasks.find((task) => !completedTasks[task.id]) ?? null;
+  const isLearningOnlyLesson = assessmentTasks.length === 0;
+  const nextStep = lesson
+    ? getNextKubernetesStep({ type: "lesson", lessonId: lesson.id })
+    : null;
+
+  const completeTask = (taskId: string, label: string) => {
+    setCompletedTasks((prev) => ({ ...prev, [taskId]: true }));
+    setTaskFeedback(`Task complete: ${label}`);
+  };
 
   // Automatically mark this assessment complete when all interactive tasks are done.
   useEffect(() => {
@@ -129,35 +190,30 @@ export default function KubernetesLessonPage() {
     const normalized = normalizeCommand(cmd);
 
     if (assessmentTasks.length === 0) return;
+    if (!currentTask) return;
+    if (commandMatchesTask(currentTask.id, normalized)) {
+      completeTask(currentTask.id, currentTask.label);
+      return;
+    }
 
-    setCompletedTasks((prev) => {
-      const next = { ...prev };
+    setTaskFeedback(
+      `Finish the current task first: ${currentTask.label}`
+    );
+  };
 
-      if (lessonId === "kubectl-get" || lessonId === "intro") {
-        if (
-          normalized === "kubectl get pods" ||
-          normalized.startsWith("kubectl get pods ")
-        ) {
-          next.pods = true;
-        }
-        if (
-          normalized === "kubectl get nodes" ||
-          normalized.startsWith("kubectl get nodes ")
-        ) {
-          next.nodes = true;
-        }
-        if (
-          normalized === "kubectl get deployments" ||
-          normalized === "kubectl get deployment" ||
-          normalized.startsWith("kubectl get deployments ") ||
-          normalized.startsWith("kubectl get deployment ")
-        ) {
-          next.deployments = true;
-        }
-      }
-
-      return next;
-    });
+  const handleDragDropMatch = (taskId: string, optionId: string) => {
+    if (!currentTask || currentTask.id !== taskId) {
+      setTaskFeedback("Complete the current task first.");
+      return;
+    }
+    if (taskId === optionId) {
+      completeTask(taskId, currentTask.label);
+      return;
+    }
+    const selectedOption = assessmentOptions.find((option) => option.id === optionId)?.label;
+    setTaskFeedback(
+      `Not quite. ${selectedOption ?? "That command"} does not match the current task.`
+    );
   };
 
   if (!lesson) {
@@ -183,6 +239,43 @@ export default function KubernetesLessonPage() {
 
         <h1 className="text-2xl font-bold text-white mb-1">{lesson.title}</h1>
         <p className="text-gray-400 text-sm mb-2">{lesson.description}</p>
+        {isLearningOnlyLesson && (
+          <div className="mb-4 rounded-lg border border-[#58a6ff]/30 bg-[#050810] px-3 py-2 text-xs text-gray-300">
+            <p>
+              This lesson is concept-first. Mark it complete when you finish reading/practicing to
+              unlock the next checkpoint.
+            </p>
+            {profile && !isCompleted && (
+              <button
+                type="button"
+                onClick={() => markCompleted({ id: journeyId, kind: "lesson" })}
+                className="mt-2 rounded bg-[#1f6feb] px-2.5 py-1 text-[11px] font-medium text-white hover:bg-[#388bfd]"
+              >
+                Mark lesson complete
+              </button>
+            )}
+            {!profile && (
+              <p className="mt-2 text-[11px] text-gray-500">
+                Sign in with a local profile to save completion and points.
+              </p>
+            )}
+            {isCompleted && (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <span className="inline-flex rounded-full bg-[#1f6f3f] px-2 py-0.5 text-[11px] text-[#c9fdd7]">
+                  Lesson completed
+                </span>
+                {nextStep && (
+                  <Link
+                    href={getKubernetesStepHref(nextStep)}
+                    className="inline-flex rounded bg-[#1f6feb] px-2.5 py-1 text-[11px] font-medium text-white hover:bg-[#388bfd]"
+                  >
+                    Next step →
+                  </Link>
+                )}
+              </div>
+            )}
+          </div>
+        )}
         {lesson.id === "pod-yaml" && (
           <div className="mb-4 rounded-lg border border-[#3fb950]/40 bg-[#050810] px-3 py-2 text-xs text-gray-200">
             <p className="text-[11px] text-gray-300">
@@ -227,15 +320,55 @@ export default function KubernetesLessonPage() {
               The assessment is only passed once all tasks below are completed.
             </p>
             <ul className="mt-1 space-y-1">
-              {assessmentTasks.map((task) => (
-                <li key={task.id} className="flex items-start gap-2">
-                  <span className="mt-[2px] text-[11px]">
-                    {completedTasks[task.id] ? "✅" : "⬜"}
-                  </span>
-                  <span className="text-[11px] text-gray-200">{task.label}</span>
-                </li>
-              ))}
+              {assessmentTasks.map((task) => {
+                const done = completedTasks[task.id];
+                const isCurrent = !done && currentTask?.id === task.id;
+                return (
+                  <li key={task.id} className="flex items-start gap-2">
+                    <span className="mt-[2px] text-[11px]">
+                      {done ? "✅" : isCurrent ? "➡️" : "🔒"}
+                    </span>
+                    <span
+                      className={`text-[11px] ${
+                        done
+                          ? "text-gray-200"
+                          : isCurrent
+                            ? "text-[#e5ffef]"
+                            : "text-gray-500"
+                      }`}
+                    >
+                      {task.label}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
+            <div className="flex flex-wrap items-center gap-2">
+              {taskFeedback && <p className="text-[11px] text-gray-400">{taskFeedback}</p>}
+              {(allTasksDone || isCompleted) && nextStep && (
+                <Link
+                  href={getKubernetesStepHref(nextStep)}
+                  className="inline-flex rounded bg-[#1f6feb] px-2.5 py-1 text-[11px] font-medium text-white hover:bg-[#388bfd]"
+                >
+                  Next step →
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
+
+        {assessmentTasks.length > 0 && assessmentOptions.length > 0 && (
+          <div className="mb-4">
+            <DragDropAssessment
+              title="Drag and drop assessment"
+              subtitle="Match each task with the correct kubectl command. Tasks unlock one-by-one."
+              options={assessmentOptions}
+              tasks={assessmentTasks}
+              completedTaskIds={completedTasks}
+              currentTaskId={currentTask?.id ?? null}
+              feedback={taskFeedback}
+              onTaskMatched={handleDragDropMatch}
+            />
           </div>
         )}
 

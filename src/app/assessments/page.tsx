@@ -1,10 +1,20 @@
 import Link from "next/link";
 import { kubernetesLessons, codingLessons } from "@/data/lessons";
 import UserProfileStrip from "@/components/UserProfileStrip";
+import {
+  kubernetesScenarios,
+  scenarioDifficultyOrder,
+} from "@/data/kubernetesScenarios";
 
 export default function AssessmentsPage() {
   const kubernetesAssessmentIds = new Set(["intro", "kubectl-get"]);
   const codingAssessmentIds = new Set(["hello", "variables", "functions"]);
+  const scenariosByDifficulty = scenarioDifficultyOrder
+    .map((difficulty) => ({
+      difficulty,
+      items: kubernetesScenarios.filter((scenario) => scenario.difficulty === difficulty),
+    }))
+    .filter((group) => group.items.length > 0);
 
   return (
     <main className="min-h-screen bg-[#0d1117]">
@@ -36,6 +46,29 @@ export default function AssessmentsPage() {
               situation.
             </p>
             <ul className="space-y-3">
+              {scenariosByDifficulty.map((group) => (
+                <li key={group.difficulty} className="rounded-lg border border-gray-800 bg-[#0f141b] p-3">
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                    {group.difficulty}
+                  </p>
+                  <ul className="space-y-2">
+                    {group.items.map((scenario) => (
+                      <li key={scenario.id}>
+                        <Link
+                          href={`/assessments/scenarios/${scenario.id}`}
+                          className="block rounded-lg border border-[#3fb950]/40 bg-[#102118]/30 p-4 text-white hover:border-[#3fb950]/70"
+                        >
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-[#3fb950]">
+                            Interactive scenario checkpoint
+                          </p>
+                          <p className="mt-1 font-medium">{scenario.title}</p>
+                          <p className="mt-1 text-[13px] text-gray-400">{scenario.description}</p>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ))}
               {kubernetesLessons
                 .filter((lesson) => kubernetesAssessmentIds.has(lesson.id))
                 .map((lesson) => (

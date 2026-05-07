@@ -74,6 +74,16 @@ export default function K8ArchitectureViz({ onClose, lastCommand }: K8Architectu
     setActiveArea(cmd.suggestedArea);
   }, [lastCommand]);
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
   const activeCommand = COMMANDS.find((c) => c.id === activeCommandId) ?? null;
 
   const setFromCommand = (commandId: CommandId) => {
@@ -99,21 +109,34 @@ export default function K8ArchitectureViz({ onClose, lastCommand }: K8Architectu
     }`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="relative max-w-3xl w-full mx-4 rounded-2xl border border-gray-700 bg-[#0d1117] shadow-2xl">
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute right-4 top-4 rounded-full border border-gray-600 px-2 py-0.5 text-xs text-gray-300 hover:border-gray-400 hover:text-white"
+    <div
+      className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div className="h-full w-full overflow-y-auto p-4 md:p-6">
+        <div
+          className="relative mx-auto max-h-[calc(100vh-2rem)] w-full max-w-4xl overflow-hidden rounded-2xl border border-gray-700 bg-[#0d1117] shadow-2xl md:max-h-[calc(100vh-3rem)]"
+          onClick={(event) => event.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Kubernetes cluster visualization"
         >
-          Close
-        </button>
-
-        <div className="p-6 md:p-8 space-y-4">
-          <div>
-            <h2 className="text-xl font-semibold text-white">
+          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-800 bg-[#0d1117]/95 px-4 py-3 backdrop-blur">
+            <h2 className="text-sm font-semibold text-white md:text-base">
               Kubernetes cluster visualization
             </h2>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-full border border-gray-600 px-2 py-0.5 text-xs text-gray-300 hover:border-gray-400 hover:text-white"
+            >
+              Close
+            </button>
+          </div>
+
+          <div className="max-h-[calc(100vh-7rem)] overflow-y-auto p-4 md:max-h-[calc(100vh-8rem)] md:p-6 space-y-4">
+          <div>
             <p className="text-sm text-gray-400 mt-1">
               This is a conceptual map of a small cluster and how common{" "}
               <code className="text-[#3fb950]">kubectl</code> commands let you
@@ -322,6 +345,7 @@ export default function K8ArchitectureViz({ onClose, lastCommand }: K8Architectu
                 to this diagram to train your mental model.
               </p>
             </div>
+          </div>
           </div>
         </div>
       </div>

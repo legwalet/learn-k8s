@@ -71,7 +71,7 @@ export default function GlobalAssistantShell({ children }: { children: ReactNode
         const reply = data.reply ?? "I could not generate a response right now.";
 
         setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
-      } catch (err) {
+      } catch {
         setError(
           "AI helper is not available right now. Check server logs or API key configuration."
         );

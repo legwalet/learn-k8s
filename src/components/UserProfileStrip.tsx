@@ -56,7 +56,8 @@ export default function UserProfileStrip() {
         </form>
         {error && <p className="mt-1 text-[11px] text-red-400">{error}</p>}
         <p className="mt-2 text-[11px] text-gray-500">
-          No email, no password — this is a local profile for practice only.
+          No email, no password — this is a local profile for practice only. New profiles start with
+          15 welcome points.
         </p>
       </div>
     );

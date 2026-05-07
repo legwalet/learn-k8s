@@ -10,6 +10,7 @@ import {
 } from "react";
 
 type JourneyItemKind = "lesson" | "assessment" | "test";
+const SIGNUP_BONUS_POINTS = 15;
 
 export type CompletedItem = {
   id: string; // e.g. "kubernetes:intro"
@@ -57,7 +58,7 @@ function createInitialProfile(name: string): UserProfile {
   return {
     id: `local-${Date.now()}`,
     name: name.trim() || "Learner",
-    points: 0,
+    points: SIGNUP_BONUS_POINTS,
     completed: [],
     badges: [],
   };
