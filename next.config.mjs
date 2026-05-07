@@ -1,17 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ['@webcontainer/api'],
-  async headers() {
-    return [
-      {
-        source: '/:path*',
-        headers: [
-          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
-          { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
-        ],
-      },
-    ];
-  },
+  // COOP + COEP for WebContainers are set in middleware only under /learn/coding/*
   webpack: (config, { isServer }) => {
     if (isServer) return config;
     config.resolve.fallback = {
