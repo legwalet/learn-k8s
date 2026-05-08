@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 type DragDropOption = {
   id: string;
   label: string;
@@ -34,10 +36,15 @@ export default function DragDropAssessment({
   feedback,
   onTaskMatched,
 }: DragDropAssessmentProps) {
+  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
+
   return (
     <div className="rounded-lg border border-[#3fb950]/30 bg-[#050810] p-3">
       <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{title}</p>
       {subtitle && <p className="mt-1 text-[11px] text-gray-500">{subtitle}</p>}
+      <p className="mt-1 text-[10px] text-gray-500">
+        Desktop: drag command to the current step. Mobile: tap a command, then tap the current step.
+      </p>
 
       <div className="mt-3 flex flex-wrap gap-2">
         {options.map((option) => (
@@ -45,10 +52,15 @@ export default function DragDropAssessment({
             key={option.id}
             type="button"
             draggable
+            onClick={() => setSelectedOptionId(option.id)}
             onDragStart={(event) => {
               event.dataTransfer.setData("assessment-option-id", option.id);
             }}
-            className="inline-flex max-w-full items-center gap-1 rounded-full border border-gray-700 bg-[#0d1117] px-3 py-1 text-[11px] font-mono text-gray-300 hover:border-gray-500 hover:text-white"
+            className={`inline-flex max-w-full items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-mono hover:text-white ${
+              selectedOptionId === option.id
+                ? "border-[#58a6ff] bg-[#0f1726] text-white"
+                : "border-gray-700 bg-[#0d1117] text-gray-300 hover:border-gray-500"
+            }`}
           >
             <span className="text-[10px]">⇄</span>
             <span className="break-all">{option.label}</span>
@@ -70,6 +82,11 @@ export default function DragDropAssessment({
                     ? "border-[#58a6ff]/60 bg-[#0f1726]"
                     : "border-gray-800 bg-[#11161d]"
               }`}
+              onClick={() => {
+                if (!isCurrent || !selectedOptionId) return;
+                onTaskMatched(task.id, selectedOptionId);
+                setSelectedOptionId(null);
+              }}
               onDragOver={(event) => {
                 if (isCurrent) event.preventDefault();
               }}
