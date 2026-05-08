@@ -227,7 +227,7 @@ export default function CodingLessonPage() {
 
   return (
     <main className="min-h-screen bg-[#0d1117]">
-      <div className="max-w-5xl mx-auto px-6 py-6">
+      <div className="max-w-5xl mx-auto px-4 py-6 sm:px-6">
         <Link
           href="/learn/coding"
           className="text-gray-400 hover:text-white text-sm mb-4 inline-block"

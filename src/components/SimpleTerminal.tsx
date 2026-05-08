@@ -77,7 +77,7 @@ export default function SimpleTerminal({
       <div className="p-3 w-full font-mono text-sm">
         <pre
           ref={outputRef}
-          className="max-h-64 overflow-auto text-[#c9d1d9] whitespace-pre-wrap break-words m-0"
+          className="max-h-64 overflow-auto text-[#c9d1d9] whitespace-pre-wrap break-all m-0"
           style={{ fontSize: "14px" }}
         >
           {output}

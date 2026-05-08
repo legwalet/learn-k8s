@@ -48,10 +48,10 @@ export default function DragDropAssessment({
             onDragStart={(event) => {
               event.dataTransfer.setData("assessment-option-id", option.id);
             }}
-            className="inline-flex items-center gap-1 rounded-full border border-gray-700 bg-[#0d1117] px-3 py-1 text-[11px] font-mono text-gray-300 hover:border-gray-500 hover:text-white"
+            className="inline-flex max-w-full items-center gap-1 rounded-full border border-gray-700 bg-[#0d1117] px-3 py-1 text-[11px] font-mono text-gray-300 hover:border-gray-500 hover:text-white"
           >
             <span className="text-[10px]">⇄</span>
-            <span>{option.label}</span>
+            <span className="break-all">{option.label}</span>
           </button>
         ))}
       </div>

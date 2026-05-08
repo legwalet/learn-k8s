@@ -162,7 +162,7 @@ export default function KubernetesTopicTeachingPage() {
   if (!unlock.unlocked) {
     return (
       <main className="min-h-screen bg-[#0d1117]">
-        <div className="mx-auto max-w-3xl px-6 py-8">
+        <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
           <Link
             href="/learn/kubernetes"
             className="mb-5 inline-block text-sm text-gray-400 hover:text-white"
@@ -196,7 +196,7 @@ export default function KubernetesTopicTeachingPage() {
 
   return (
     <main className="min-h-screen bg-[#0d1117]">
-      <div className="mx-auto max-w-3xl px-6 py-8">
+      <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
         <Link
           href="/learn/kubernetes"
           className="mb-5 inline-block text-sm text-gray-400 hover:text-white"

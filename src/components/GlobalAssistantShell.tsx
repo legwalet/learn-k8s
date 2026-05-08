@@ -90,7 +90,7 @@ export default function GlobalAssistantShell({ children }: { children: ReactNode
         {children}
 
         {/* Floating chat bubble + panel */}
-        <div className="fixed bottom-4 right-4 z-50">
+        <div className="fixed bottom-3 right-3 z-50 sm:bottom-4 sm:right-4">
         {/* Bubble */}
         {!open && (
           <button
@@ -105,7 +105,7 @@ export default function GlobalAssistantShell({ children }: { children: ReactNode
 
         {/* Panel */}
         {open && (
-          <div className="relative w-80 sm:w-96 rounded-xl border border-gray-800 bg-[#05080c] shadow-2xl shadow-black/60 overflow-hidden">
+          <div className="relative w-[calc(100vw-1.5rem)] max-w-96 rounded-xl border border-gray-800 bg-[#05080c] shadow-2xl shadow-black/60 overflow-hidden">
             <header className="flex items-center justify-between gap-2 border-b border-gray-800 px-3 py-2">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
@@ -124,7 +124,7 @@ export default function GlobalAssistantShell({ children }: { children: ReactNode
               </button>
             </header>
 
-            <div className="flex h-64 flex-col bg-[#050810]">
+            <div className="flex h-[58vh] min-h-64 max-h-[70vh] flex-col bg-[#050810]">
               <div className="flex-1 space-y-2 overflow-auto px-3 py-2 text-[12px]">
                 {!hasMessages && (
                   <div className="flex justify-start">

@@ -103,7 +103,7 @@ export default function UserProfileStrip() {
       <button
         type="button"
         onClick={logout}
-        className="self-start rounded-md border border-gray-700 px-2 py-1 text-[11px] text-gray-400 hover:border-gray-500 hover:text-white sm:self-auto"
+        className="self-start rounded-md border border-gray-700 px-2 py-1 text-[11px] text-gray-400 hover:border-gray-500 hover:text-white sm:self-auto sm:shrink-0"
       >
         Log out
       </button>
