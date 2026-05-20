@@ -39,6 +39,7 @@ export default function CodingTrackPage() {
               <li key={lesson.id}>
                 {unlocked ? (
                   <Link
+                    prefetch={false}
                     href={`/learn/coding/${lesson.id}`}
                     className="block p-4 rounded-lg border border-gray-700 bg-[#161b22] hover:border-[#58a6ff]/50 text-white"
                   >

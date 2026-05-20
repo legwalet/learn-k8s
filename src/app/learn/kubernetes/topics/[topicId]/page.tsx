@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import DragDropAssessment from "@/components/DragDropAssessment";
 import SimulatedK8Terminal from "@/components/SimulatedK8Terminal";
 import { useUserProgress } from "@/components/UserProgressContext";
 import {
@@ -14,6 +14,16 @@ import {
   kubernetesScenarios,
   topicProgressId,
 } from "@/data/kubernetesScenarios";
+
+const DragDropAssessmentClient = dynamic(
+  () => import("@/components/DragDropAssessment"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="mb-4 rounded-lg border border-gray-800 bg-[#0d1117] min-h-[120px] animate-pulse" />
+    ),
+  }
+);
 
 const scenarioPanel =
   "mb-4 flex flex-col gap-2 rounded-lg border border-[#3fb950]/40 bg-[#050810] px-3 py-3 text-xs text-gray-200";
@@ -76,8 +86,8 @@ export default function KubernetesTopicTeachingPage() {
   const [completedTasks, setCompletedTasks] = useState<Record<string, boolean>>({});
   const [taskFeedback, setTaskFeedback] = useState<string | null>(null);
 
-  const tasks = topic?.tasks ?? [];
-  const commands = topic?.commands ?? [];
+  const tasks = useMemo(() => topic?.tasks ?? [], [topic?.tasks]);
+  const commands = useMemo(() => topic?.commands ?? [], [topic?.commands]);
   const totalTasks = tasks.length;
   const completedCount = tasks.filter((t) => completedTasks[t.id]).length;
   const allTasksDone = totalTasks > 0 && completedCount === totalTasks;
@@ -97,7 +107,7 @@ export default function KubernetesTopicTeachingPage() {
       for (const t of tasks) next[t.id] = true;
       return next;
     });
-  }, [topic?.id, tasks.length, topicDone]);
+  }, [topic, tasks, topicDone]);
 
   useEffect(() => {
     if (!topic || !profile || !unlock.unlocked) return;
@@ -106,9 +116,14 @@ export default function KubernetesTopicTeachingPage() {
       id: progressId,
       kind: "lesson",
     });
+    // Topic practice unlocks the matching scenario step on the main Kubernetes journey.
+    markCompleted({
+      id: `scenario:${topic.id}`,
+      kind: "assessment",
+    });
   }, [
     allTasksDone,
-    topic?.id,
+    topic,
     profile,
     unlock.unlocked,
     topicDone,
@@ -306,7 +321,7 @@ export default function KubernetesTopicTeachingPage() {
 
         {tasks.length > 0 && commands.length > 0 && (
           <div className="mb-4">
-            <DragDropAssessment
+            <DragDropAssessmentClient
               variant="lesson"
               title="Drag and drop lesson practice"
               subtitle="Match each step with an acceptable command. One step unlocks at a time."

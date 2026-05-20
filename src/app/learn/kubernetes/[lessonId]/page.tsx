@@ -1,18 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
-import K8ArchitectureViz from "@/components/K8ArchitectureViz";
-import DragDropAssessment from "@/components/DragDropAssessment";
 import SimulatedK8Terminal from "@/components/SimulatedK8Terminal";
 import { useLessonAssistantContext } from "@/components/GlobalAssistantShell";
 import { kubernetesLessons } from "@/data/lessons";
 import { useUserProgress } from "@/components/UserProgressContext";
 import {
-  getKubernetesStepHref,
-  getNextKubernetesStep,
+  getNextIncompleteJourneyHref,
 } from "@/data/kubernetesScenarios";
 
 const CodeEditorClient = dynamic(() => import("@/components/CodeEditor"), {
@@ -21,6 +18,32 @@ const CodeEditorClient = dynamic(() => import("@/components/CodeEditor"), {
     <div className="rounded-lg border border-gray-800 bg-[#0d1117] h-full min-h-[200px] animate-pulse" />
   ),
 });
+
+const DragDropAssessmentClient = dynamic(
+  () => import("@/components/DragDropAssessment"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="mb-4 rounded-lg border border-gray-800 bg-[#0d1117] min-h-[120px] animate-pulse" />
+    ),
+  }
+);
+
+const K8ArchitectureVizClient = dynamic(
+  () => import("@/components/K8ArchitectureViz"),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm text-sm text-gray-300"
+        role="status"
+        aria-live="polite"
+      >
+        Loading visualization…
+      </div>
+    ),
+  }
+);
 
 type AssessmentTask = {
   id: string;
@@ -67,7 +90,76 @@ function getAssessmentTasksForLesson(lessonId: string): AssessmentTask[] {
     ];
   }
 
+  if (lessonId === "pod-yaml") {
+    return [
+      {
+        id: "pod-kind",
+        label: "Keep or edit the YAML so it defines a Pod (kind: Pod).",
+      },
+      {
+        id: "pod-get",
+        label: "Run kubectl get pods in the terminal to verify the manifest idea.",
+      },
+    ];
+  }
+
+  if (lessonId === "deployment-yaml") {
+    return [
+      {
+        id: "deploy-kind",
+        label: "Confirm the manifest is a Deployment (kind: Deployment).",
+      },
+      {
+        id: "deploy-replicas",
+        label: "Set replicas to 3 so Kubernetes runs three copies of the app.",
+      },
+      {
+        id: "deploy-get",
+        label: "Run kubectl get deployments to see rollout state.",
+      },
+    ];
+  }
+
+  if (lessonId === "service-yaml") {
+    return [
+      {
+        id: "svc-kind",
+        label: "Confirm the manifest is a Service (kind: Service).",
+      },
+      {
+        id: "svc-type",
+        label: "Use type: ClusterIP for in-cluster access (as in the example).",
+      },
+      {
+        id: "svc-get",
+        label: "Run kubectl get services to list cluster endpoints.",
+      },
+    ];
+  }
+
   return [];
+}
+
+function deriveYamlLessonTasks(
+  lessonId: string,
+  yaml: string
+): Partial<Record<string, boolean>> {
+  const trimmed = yaml.trim();
+  const out: Partial<Record<string, boolean>> = {};
+
+  if (lessonId === "pod-yaml" && /kind:\s*Pod/i.test(trimmed)) {
+    out["pod-kind"] = true;
+  }
+  if (lessonId === "deployment-yaml") {
+    if (/kind:\s*Deployment/i.test(trimmed)) out["deploy-kind"] = true;
+    if (/replicas:\s*3\b/.test(trimmed)) out["deploy-replicas"] = true;
+  }
+  if (lessonId === "service-yaml") {
+    if (/kind:\s*Service/i.test(trimmed)) out["svc-kind"] = true;
+    if (/type:\s*ClusterIP/i.test(trimmed)) out["svc-type"] = true;
+  }
+
+  return out;
 }
 
 function normalizeCommand(cmd: string): string {
@@ -79,7 +171,7 @@ function normalizeCommand(cmd: string): string {
 }
 
 function commandMatchesTask(taskId: string, normalized: string): boolean {
-  if (taskId === "pods") {
+  if (taskId === "pods" || taskId === "pod-get") {
     return (
       normalized === "kubectl get pods" || normalized.startsWith("kubectl get pods ")
     );
@@ -89,12 +181,20 @@ function commandMatchesTask(taskId: string, normalized: string): boolean {
       normalized === "kubectl get nodes" || normalized.startsWith("kubectl get nodes ")
     );
   }
-  if (taskId === "deployments") {
+  if (taskId === "deployments" || taskId === "deploy-get") {
     return (
       normalized === "kubectl get deployments" ||
       normalized === "kubectl get deployment" ||
       normalized.startsWith("kubectl get deployments ") ||
       normalized.startsWith("kubectl get deployment ")
+    );
+  }
+  if (taskId === "svc-get") {
+    return (
+      normalized === "kubectl get services" ||
+      normalized === "kubectl get svc" ||
+      normalized.startsWith("kubectl get services ") ||
+      normalized.startsWith("kubectl get svc ")
     );
   }
   return false;
@@ -160,9 +260,15 @@ export default function KubernetesLessonPage() {
   const completedCount = assessmentTasks.filter((t) => completedTasks[t.id]).length;
   const allTasksDone = totalTasks > 0 && completedCount === totalTasks;
   const currentTask = assessmentTasks.find((task) => !completedTasks[task.id]) ?? null;
-  const isLearningOnlyLesson = assessmentTasks.length === 0;
-  const nextStep = lesson
-    ? getNextKubernetesStep({ type: "lesson", lessonId: lesson.id })
+  const completedJourneyIds = useMemo(
+    () => new Set(profile?.completed.map((item) => item.id) ?? []),
+    [profile?.completed]
+  );
+  const nextJourneyHref = lesson
+    ? getNextIncompleteJourneyHref(completedJourneyIds, {
+        type: "lesson",
+        lessonId: lesson.id,
+      })
     : null;
 
   const completeTask = (taskId: string, label: string) => {
@@ -180,7 +286,33 @@ export default function KubernetesLessonPage() {
       for (const t of tasks) next[t.id] = true;
       return next;
     });
-  }, [lesson?.id, isCompleted]);
+  }, [lesson, isCompleted]);
+
+  useEffect(() => {
+    if (!lesson) return;
+    setCode(lesson.code);
+    setCompletedTasks({});
+    setTaskFeedback(null);
+    setYamlRunHint(null);
+    setLastCommand(null);
+  }, [lesson]);
+
+  useEffect(() => {
+    if (!lesson || assessmentTasks.length === 0) return;
+    const yamlTasks = deriveYamlLessonTasks(lesson.id, code);
+    if (Object.keys(yamlTasks).length === 0) return;
+    setCompletedTasks((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const [id, done] of Object.entries(yamlTasks)) {
+        if (done && !next[id]) {
+          next[id] = true;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [lesson, code, assessmentTasks.length]);
 
   // Lessons page = lesson progress only (counts as a lesson completion, same journey id).
   useEffect(() => {
@@ -249,51 +381,6 @@ export default function KubernetesLessonPage() {
 
         <h1 className="text-2xl font-bold text-white mb-1">{lesson.title}</h1>
         <p className="text-gray-400 text-sm mb-2">{lesson.description}</p>
-        {isLearningOnlyLesson && (
-          <div className={`${lessonScenarioPanelClass} border-[#58a6ff]/40`}>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-gray-800 px-2 py-0.5 text-[11px] text-gray-300">
-                Lesson practice
-              </span>
-              <span className="text-[11px] text-gray-500">
-                Concept-first — no graded command checklist on this page.
-              </span>
-            </div>
-            <p className="text-[11px] text-gray-400">
-              <span className="font-semibold text-gray-300">Scenario: </span>
-              Work through the lesson content below, try the YAML and terminal when it helps, then mark the lesson complete to continue your journey.
-            </p>
-            {profile && !isCompleted && (
-              <button
-                type="button"
-                onClick={() => markCompleted({ id: journeyId, kind: "lesson" })}
-                className="mt-2 rounded bg-[#1f6feb] px-2.5 py-1 text-[11px] font-medium text-white hover:bg-[#388bfd]"
-              >
-                Mark lesson complete
-              </button>
-            )}
-            {!profile && (
-              <p className="mt-2 text-[11px] text-gray-500">
-                Sign in with a local profile to save completion and points.
-              </p>
-            )}
-            {isCompleted && (
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className="inline-flex rounded-full bg-[#1f6f3f] px-2 py-0.5 text-[11px] text-[#c9fdd7]">
-                  Lesson completed
-                </span>
-                {nextStep && (
-                  <Link
-                    href={getKubernetesStepHref(nextStep)}
-                    className="inline-flex rounded bg-[#1f6feb] px-2.5 py-1 text-[11px] font-medium text-white hover:bg-[#388bfd]"
-                  >
-                    Next step →
-                  </Link>
-                )}
-              </div>
-            )}
-          </div>
-        )}
         {lesson.id === "pod-yaml" && (
           <div className={lessonScenarioPanelClass}>
             <div className="flex flex-wrap items-center gap-2">
@@ -365,9 +452,9 @@ export default function KubernetesLessonPage() {
             </ul>
             <div className="flex flex-wrap items-center gap-2">
               {taskFeedback && <p className="text-[11px] text-gray-400">{taskFeedback}</p>}
-              {(allTasksDone || isCompleted) && nextStep && (
+              {(allTasksDone || isCompleted) && nextJourneyHref && (
                 <Link
-                  href={getKubernetesStepHref(nextStep)}
+                  href={nextJourneyHref}
                   className="inline-flex rounded bg-[#1f6feb] px-2.5 py-1 text-[11px] font-medium text-white hover:bg-[#388bfd]"
                 >
                   Next step →
@@ -379,7 +466,7 @@ export default function KubernetesLessonPage() {
 
         {assessmentTasks.length > 0 && assessmentOptions.length > 0 && (
           <div className="mb-4">
-            <DragDropAssessment
+            <DragDropAssessmentClient
               variant="lesson"
               title="Drag and drop lesson practice"
               subtitle="Match each lesson task with the right kubectl command. Tasks unlock one at a time."
@@ -475,7 +562,7 @@ export default function KubernetesLessonPage() {
       </div>
 
       {showViz && (
-        <K8ArchitectureViz
+        <K8ArchitectureVizClient
           onClose={() => setShowViz(false)}
           lastCommand={lastCommand ?? undefined}
         />

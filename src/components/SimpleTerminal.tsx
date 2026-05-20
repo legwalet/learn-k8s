@@ -53,7 +53,11 @@ export default function SimpleTerminal({
       if (onLine && line) {
         try {
           const out = await Promise.resolve(onLine(line));
-          if (out != null && out !== "") setOutput((prev) => prev + out + "\n");
+          if (out === "__CLEAR__") {
+            setOutput(prompt);
+          } else if (out != null && out !== "") {
+            setOutput((prev) => prev + out + "\n");
+          }
         } catch (err) {
           setOutput((prev) => prev + String(err) + "\n");
         }

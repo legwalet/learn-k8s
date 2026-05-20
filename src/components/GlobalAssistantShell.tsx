@@ -8,12 +8,21 @@ import {
   type ReactNode,
   type FormEvent,
 } from "react";
+import dynamic from "next/dynamic";
 import { UserProgressProvider } from "@/components/UserProgressContext";
+import type { AssistantChatMessage } from "@/types/assistant";
 
-type ChatMessage = {
-  role: "user" | "assistant";
-  content: string;
-};
+const AssistantChatPanelLazy = dynamic(
+  () => import("@/components/AssistantChatPanel"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="relative w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] sm:max-w-96 rounded-xl border border-gray-800 bg-[#05080c] p-4 text-center text-xs text-gray-400 shadow-2xl">
+        Loading tutor…
+      </div>
+    ),
+  }
+);
 
 type AssistantContextValue = {
   context: string;
@@ -36,7 +45,7 @@ export default function GlobalAssistantShell({ children }: { children: ReactNode
   );
 
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<AssistantChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +56,10 @@ export default function GlobalAssistantShell({ children }: { children: ReactNode
       const trimmed = input.trim();
       if (!trimmed || loading) return;
 
-      const nextMessages: ChatMessage[] = [...messages, { role: "user", content: trimmed }];
+      const nextMessages: AssistantChatMessage[] = [
+        ...messages,
+        { role: "user", content: trimmed },
+      ];
       setMessages(nextMessages);
       setInput("");
       setLoading(true);
@@ -63,18 +75,26 @@ export default function GlobalAssistantShell({ children }: { children: ReactNode
           }),
         });
 
+        const data = (await res.json()) as { reply?: string; error?: string };
+
         if (!res.ok) {
-          throw new Error(`Request failed with status ${res.status}`);
+          const serverReply = data.reply?.trim();
+          if (serverReply) {
+            setMessages((prev) => [...prev, { role: "assistant", content: serverReply }]);
+            return;
+          }
+          throw new Error(data.error || `Request failed with status ${res.status}`);
         }
 
-        const data = (await res.json()) as { reply?: string };
         const reply = data.reply ?? "I could not generate a response right now.";
 
         setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
-      } catch {
-        setError(
-          "AI helper is not available right now. Check server logs or API key configuration."
-        );
+      } catch (err) {
+        const message =
+          err instanceof Error && err.message
+            ? err.message
+            : "AI helper is not available right now. Check server logs or API key configuration.";
+        setError(message);
       } finally {
         setLoading(false);
       }
@@ -89,120 +109,32 @@ export default function GlobalAssistantShell({ children }: { children: ReactNode
       <UserProgressProvider>
         {children}
 
-        {/* Floating chat bubble + panel */}
         <div className="fixed bottom-3 right-3 z-50 sm:bottom-4 sm:right-4">
-        {/* Bubble */}
-        {!open && (
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-[#238636] text-white shadow-lg shadow-black/50 border border-white/10"
-            aria-label="Open AI tutor chat"
-          >
-            ☸️
-          </button>
-        )}
+          {!open && (
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-[#238636] text-white shadow-lg shadow-black/50 border border-white/10"
+              aria-label="Open AI tutor chat"
+            >
+              ☸️
+            </button>
+          )}
 
-        {/* Panel */}
-        {open && (
-          <div className="relative w-[calc(100vw-1.5rem)] max-w-96 rounded-xl border border-gray-800 bg-[#05080c] shadow-2xl shadow-black/60 overflow-hidden">
-            <header className="flex items-center justify-between gap-2 border-b border-gray-800 px-3 py-2">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                  AI tutor
-                </p>
-                <p className="text-[11px] text-gray-500">
-                  Ask about the page you&apos;re on right now.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="rounded-full border border-gray-700 px-2 py-0.5 text-[10px] text-gray-400 hover:text-white hover:border-gray-500"
-              >
-                Close
-              </button>
-            </header>
-
-            <div className="flex h-[58vh] min-h-64 max-h-[70vh] flex-col bg-[#050810]">
-              <div className="flex-1 space-y-2 overflow-auto px-3 py-2 text-[12px]">
-                {!hasMessages && (
-                  <div className="flex justify-start">
-                    <div className="max-w-[85%] rounded-2xl rounded-bl-sm bg-[#111827] px-3 py-2 text-[11px] text-gray-200 shadow-sm shadow-black/40">
-                      <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-                        Tutor
-                      </p>
-                      <p className="text-gray-200">
-                        Example questions:
-                        <br />
-                        &quot;Explain this lesson in simple words&quot;
-                        <br />
-                        &quot;What does this YAML create?&quot;
-                        <br />
-                        &quot;What does kubectl get pods show?&quot;
-                      </p>
-                    </div>
-                  </div>
-                )}
-                {messages.map((m, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex w-full ${
-                      m.role === "user" ? "justify-end" : "justify-start"
-                    }`}
-                  >
-                    <div
-                      className={`max-w-[85%] rounded-2xl px-3 py-2 text-[12px] leading-relaxed shadow-sm shadow-black/40 ${
-                        m.role === "user"
-                          ? "rounded-br-sm bg-[#1f6f3f] text-white"
-                          : "rounded-bl-sm bg-[#111827] text-gray-100"
-                      }`}
-                    >
-                      <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide opacity-80">
-                        {m.role === "user" ? "You" : "Tutor"}
-                      </p>
-                      <p className="whitespace-pre-wrap break-words">{m.content}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <form
-                onSubmit={handleSend}
-                className="flex items-center gap-1 border-t border-gray-800 bg-[#020408] px-2 py-2"
-              >
-                <input
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask a question…"
-                  className="flex-1 rounded border border-gray-700 bg-black/40 px-2 py-1 text-[12px] text-gray-100 outline-none focus:border-[#3fb950]"
-                />
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="rounded bg-[#238636] px-3 py-1 text-[12px] font-medium text-white hover:bg-[#2ea043] disabled:opacity-60"
-                >
-                  {loading ? "…" : "Send"}
-                </button>
-              </form>
-            </div>
-
-            {error && (
-              <p className="px-3 pb-2 text-[11px] text-red-400 border-t border-gray-800 bg-[#05080c]">
-                {error}
-              </p>
-            )}
-
-            <p className="px-3 pb-2 text-[10px] text-gray-500 border-t border-gray-900 bg-[#05080c]">
-              Answers are AI-generated. Always double-check commands before running them on a real
-              cluster.
-            </p>
-          </div>
-        )}
+          {open && (
+            <AssistantChatPanelLazy
+              onClose={() => setOpen(false)}
+              hasMessages={hasMessages}
+              messages={messages}
+              input={input}
+              onInputChange={setInput}
+              onSubmit={handleSend}
+              loading={loading}
+              error={error}
+            />
+          )}
         </div>
       </UserProgressProvider>
     </AssistantContext.Provider>
   );
 }
-

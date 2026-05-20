@@ -128,9 +128,14 @@ export function UserProgressProvider({ children }: { children: ReactNode }) {
       const stored = window.localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored) as UserProfile;
+        const completed = (parsed.completed ?? []).map((item) =>
+          item.id === "kubernetes:pod-yaml" && item.kind === "assessment"
+            ? { ...item, id: "assessment:pod-yaml" }
+            : item
+        );
         setProfile({
           ...parsed,
-          completed: parsed.completed ?? [],
+          completed,
           badges: parsed.badges ?? [],
         });
       }

@@ -12,6 +12,8 @@ const spaceGrotesk = Space_Grotesk({
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-geist-mono",
+  preload: false,
+  adjustFontFallback: true,
 });
 
 export const metadata: Metadata = {
@@ -38,14 +40,19 @@ export default function RootLayout({
     if (stack && stack.indexOf('xterm') !== -1 && msg.indexOf('undefined') !== -1) return true;
     return false;
   }
-  /** Stale / mismatched JS chunks (__webpack_require__ .call failures). */
+  /** Stale / mismatched JS chunks (__webpack_require__ failures, minified a[d] is not a function). */
   function looksLikeStaleWebpackChunk(msg, stack) {
     msg = String(msg || '');
     stack = String(stack || '');
-    if (msg.indexOf("reading 'call'") === -1) return false;
+    var isRequireCall =
+      msg.indexOf("reading 'call'") !== -1 ||
+      /is not a function/i.test(msg) ||
+      /webpack_require/i.test(msg);
+    if (!isRequireCall) return false;
     return stack.indexOf('__webpack_require__') !== -1
       || stack.indexOf('webpack-runtime') !== -1
-      || stack.indexOf('webpack.js') !== -1;
+      || stack.indexOf('webpack.js') !== -1
+      || stack.indexOf('webpack-internal') !== -1;
   }
   /** Chunk load timeout / failed fetch (often fixed by one reload after HMR). */
   function looksLikeChunkLoadFailure(msg, stack, filename) {

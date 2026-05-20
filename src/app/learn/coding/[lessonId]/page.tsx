@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -93,9 +93,9 @@ function updateTaskStatusForLesson(
   if (lessonId === "hello") {
     if (hasJustRun) {
       next["run-once"] = true;
-    }
-    if (/hello,\s*world!?/i.test(trimmed) || /"Hello, World!?"/.test(trimmed)) {
-      next["prints-hello-world"] = true;
+      if (/hello,\s*world!?/i.test(trimmed) || /"Hello, World!?"/.test(trimmed)) {
+        next["prints-hello-world"] = true;
+      }
     }
   }
 
@@ -159,17 +159,36 @@ export default function CodingLessonPage() {
     );
   }, [lesson, setContext]);
 
+  useEffect(() => {
+    if (!lesson) return;
+    setCode(lesson.code);
+    setTaskStatus({});
+    setAssessmentMessage(null);
+  }, [lesson]);
+
   const journeyId = lesson ? `coding:${lesson.id}` : "";
   const isCompleted =
     journeyId && profile
       ? profile.completed.some((item) => item.id === journeyId)
       : false;
 
-  const assessmentTasks = lesson ? getCodingAssessmentTasks(lesson.id) : [];
+  const assessmentTasks = useMemo(
+    () => (lesson ? getCodingAssessmentTasks(lesson.id) : []),
+    [lesson]
+  );
   const totalTasks = assessmentTasks.length;
   const completedCount = assessmentTasks.filter((t) => taskStatus[t.id]).length;
   const allTasksDone = totalTasks > 0 && completedCount === totalTasks;
   const currentTask = assessmentTasks.find((task) => !taskStatus[task.id]) ?? null;
+
+  useEffect(() => {
+    if (!lesson || assessmentTasks.length === 0 || !isCompleted) return;
+    setTaskStatus((prev) => {
+      const next = { ...prev };
+      for (const t of assessmentTasks) next[t.id] = true;
+      return next;
+    });
+  }, [lesson, assessmentTasks, isCompleted]);
 
   const handleRun = useCallback(() => {
     runFromEditorRef.current?.(code);
@@ -328,6 +347,7 @@ export default function CodingLessonPage() {
           <div className="space-y-3 min-w-0">
             <div>
               <WebContainerTerminalClient
+                key={lesson.id}
                 initialCode={code}
                 onRunFromEditor={(run) => {
                   runFromEditorRef.current = run;

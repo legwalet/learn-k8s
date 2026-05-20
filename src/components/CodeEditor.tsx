@@ -36,6 +36,17 @@ export default function CodeEditor({
           lineNumbers: "on",
           folding: true,
           wordWrap: "on",
+          glyphMargin: false,
+          overviewRulerLanes: 0,
+          hideCursorInOverviewRuler: true,
+          ...(readOnly && language === "yaml"
+            ? {
+                quickSuggestions: false,
+                parameterHints: { enabled: false },
+                suggestOnTriggerCharacters: false,
+                wordBasedSuggestions: "off",
+              }
+            : {}),
         }}
         onMount={() => {
           // optional: focus, resize, etc.

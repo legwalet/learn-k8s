@@ -116,11 +116,11 @@ export default function WebContainerTerminal({
     return () => {
       cancelled = true;
       disposedRef.current = true;
+      shellInputRef.current?.releaseLock?.();
       shellInputRef.current = null;
       containerRef.current = null;
-      disposedRef.current = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- boot once per mount; parent uses key=lessonId to reset
   }, [writeReady]);
 
   const handleReady = useCallback((write: (data: string) => void) => {

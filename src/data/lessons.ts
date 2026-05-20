@@ -223,7 +223,7 @@ Next steps:
   }
 
   if (c === "clear") {
-    return "Screen cleared (simulated). Type kubectl get pods to continue.";
+    return "__CLEAR__";
   }
   if (c === "kubectl get pods" || c === "kubectl get pod") {
     return `NAME         READY   STATUS    RESTARTS   AGE

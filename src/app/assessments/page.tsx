@@ -55,6 +55,7 @@ export default function AssessmentsPage() {
                     {group.items.map((scenario) => (
                       <li key={scenario.id}>
                         <Link
+                          prefetch={false}
                           href={`/assessments/scenarios/${scenario.id}`}
                           className="block rounded-lg border border-[#3fb950]/40 bg-[#102118]/30 p-4 text-white hover:border-[#3fb950]/70"
                         >
@@ -74,6 +75,7 @@ export default function AssessmentsPage() {
                 .map((lesson) => (
                   <li key={lesson.id}>
                     <Link
+                      prefetch={false}
                       href={`/learn/kubernetes/${lesson.id}`}
                       className="block rounded-lg border border-gray-700 bg-[#161b22] p-4 hover:border-[#3fb950]/60 text-white"
                     >
@@ -90,6 +92,7 @@ export default function AssessmentsPage() {
                 ))}
               <li>
                 <Link
+                  prefetch={false}
                   href="/assessments/pod-yaml"
                   className="block rounded-lg border border-gray-700 bg-[#161b22] p-4 hover:border-[#3fb950]/60 text-white"
                 >
@@ -122,6 +125,7 @@ export default function AssessmentsPage() {
                 .map((lesson) => (
                   <li key={lesson.id}>
                     <Link
+                      prefetch={false}
                       href={`/learn/coding/${lesson.id}`}
                       className="block rounded-lg border border-gray-700 bg-[#161b22] p-4 hover:border-[#58a6ff]/60 text-white"
                     >

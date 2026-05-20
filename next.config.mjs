@@ -2,7 +2,16 @@
 const nextConfig = {
   transpilePackages: ['@webcontainer/api'],
   // COOP + COEP for WebContainers are set in middleware only under /learn/coding/*
-  webpack: (config, { isServer }) => {
+  webpack: (config, { dev, isServer }) => {
+    // Avoid stale webpack chunk graphs in `next dev` (e.g. ENOENT ./331.js, a[d] is not a function).
+    if (dev && !isServer) {
+      config.cache = false;
+      config.optimization = {
+        ...config.optimization,
+        moduleIds: 'named',
+        chunkIds: 'named',
+      };
+    }
     if (isServer) return config;
     config.resolve.fallback = {
       ...config.resolve.fallback,

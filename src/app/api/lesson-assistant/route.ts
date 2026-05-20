@@ -6,10 +6,21 @@ type ChatMessage = {
 };
 
 export async function POST(req: NextRequest) {
-  const { context, messages } = (await req.json()) as {
-    context?: string;
-    messages?: ChatMessage[];
-  };
+  let context: string | undefined;
+  let messages: ChatMessage[] | undefined;
+  try {
+    const body = (await req.json()) as {
+      context?: string;
+      messages?: ChatMessage[];
+    };
+    context = body.context;
+    messages = body.messages;
+  } catch {
+    return NextResponse.json(
+      { reply: "Invalid request body. Send JSON with context and messages." },
+      { status: 400 }
+    );
+  }
 
   const apiKey = process.env.OPENAI_API_KEY;
   const localBaseUrl = process.env.LOCAL_LLM_BASE_URL; // e.g. http://localhost:11434/v1

@@ -665,6 +665,59 @@ export function getKubernetesStepHref(step: KubernetesJourneyStep): string {
     : `/assessments/scenarios/${step.scenarioId}`;
 }
 
+/** Matches `profile.completed[].id` for journey steps (lessons vs scenario exams). */
+export function getJourneyStepCompletionId(step: KubernetesJourneyStep): string {
+  return step.type === "lesson"
+    ? `kubernetes:${step.lessonId}`
+    : `scenario:${step.scenarioId}`;
+}
+
+/** Topic practice (`topic:*`) counts toward the matching scenario exam step (`scenario:*`). */
+export function isJourneyStepComplete(
+  step: KubernetesJourneyStep,
+  completedIds: ReadonlySet<string>
+): boolean {
+  if (step.type === "lesson") {
+    return completedIds.has(`kubernetes:${step.lessonId}`);
+  }
+  const scenarioId = step.scenarioId;
+  return (
+    completedIds.has(`scenario:${scenarioId}`) ||
+    completedIds.has(topicProgressId(scenarioId))
+  );
+}
+
+/** First journey step after `current` that is not in `completedIds`, or null if none left. */
+export function getNextIncompleteJourneyStep(
+  completedIds: ReadonlySet<string> | undefined | null,
+  current: KubernetesJourneyStep
+): KubernetesJourneyStep | null {
+  const index = kubernetesJourneySteps.findIndex((step) =>
+    step.type === "lesson" && current.type === "lesson"
+      ? step.lessonId === current.lessonId
+      : step.type === "scenario" && current.type === "scenario"
+        ? step.scenarioId === current.scenarioId
+        : false
+  );
+  if (index < 0) return null;
+  const ids = completedIds ?? new Set<string>();
+  for (let i = index + 1; i < kubernetesJourneySteps.length; i++) {
+    const step = kubernetesJourneySteps[i];
+    if (!isJourneyStepComplete(step, ids)) {
+      return step;
+    }
+  }
+  return null;
+}
+
+export function getNextIncompleteJourneyHref(
+  completedIds: ReadonlySet<string> | undefined | null,
+  current: KubernetesJourneyStep
+): string | null {
+  const step = getNextIncompleteJourneyStep(completedIds, current);
+  return step ? getKubernetesStepHref(step) : null;
+}
+
 export const scenarioDifficultyOrder: KubernetesScenario["difficulty"][] = [
   "Beginner",
   "On-call",

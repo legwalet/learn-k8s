@@ -7,9 +7,9 @@ import UserProfileStrip from "@/components/UserProfileStrip";
 import { useUserProgress } from "@/components/UserProgressContext";
 import {
   getTeachingTopicUnlockState,
+  isJourneyStepComplete,
   kubernetesJourneySteps,
   kubernetesScenarios,
-  type KubernetesJourneyStep,
 } from "@/data/kubernetesScenarios";
 
 /** Match lesson-card titles — scenario data uses a "Scenario: " prefix. */
@@ -19,8 +19,6 @@ function displayTopicTitle(title: string): string {
 
 export default function KubernetesTrackPage() {
   const { profile } = useUserProgress();
-  const getStepCompletionId = (step: KubernetesJourneyStep): string =>
-    step.type === "lesson" ? `kubernetes:${step.lessonId}` : `scenario:${step.scenarioId}`;
   const completedIds = useMemo(
     () => new Set(profile?.completed.map((item) => item.id) ?? []),
     [profile?.completed]
@@ -35,7 +33,7 @@ export default function KubernetesTrackPage() {
     if (stepIndex <= 0) return true;
     return kubernetesJourneySteps
       .slice(0, stepIndex)
-      .every((step) => completedIds.has(getStepCompletionId(step)));
+      .every((step) => isJourneyStepComplete(step, completedIds));
   };
 
   return (
@@ -59,6 +57,7 @@ export default function KubernetesTrackPage() {
               <li key={`lesson-${lesson.id}`}>
                 {unlocked ? (
                   <Link
+                    prefetch={false}
                     href={`/learn/kubernetes/${lesson.id}`}
                     className="block rounded-lg border border-gray-700 bg-[#161b22] p-4 text-white hover:border-[#3fb950]/50"
                   >
@@ -102,6 +101,7 @@ export default function KubernetesTrackPage() {
                         <li key={topic.id}>
                           {unlock.unlocked ? (
                             <Link
+                              prefetch={false}
                               href={`/learn/kubernetes/topics/${topic.id}`}
                               className="block rounded-lg border border-gray-700 bg-[#161b22] p-4 text-white transition-colors hover:border-[#3fb950]/50"
                             >

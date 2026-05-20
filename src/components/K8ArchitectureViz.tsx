@@ -114,9 +114,9 @@ export default function K8ArchitectureViz({ onClose, lastCommand }: K8Architectu
       onClick={onClose}
       role="presentation"
     >
-      <div className="h-full w-full overflow-y-auto p-4 md:p-6">
+      <div className="h-full w-full overflow-y-auto p-0 sm:p-4 md:p-6">
         <div
-          className="relative mx-auto max-h-[calc(100vh-2rem)] w-full max-w-4xl overflow-hidden rounded-2xl border border-gray-700 bg-[#0d1117] shadow-2xl md:max-h-[calc(100vh-3rem)]"
+          className="relative mx-auto h-[100dvh] max-h-[100dvh] w-full max-w-4xl overflow-hidden border-0 bg-[#0d1117] shadow-2xl sm:h-auto sm:max-h-[calc(100vh-2rem)] sm:rounded-2xl sm:border sm:border-gray-700 md:max-h-[calc(100vh-3rem)]"
           onClick={(event) => event.stopPropagation()}
           role="dialog"
           aria-modal="true"
@@ -135,7 +135,7 @@ export default function K8ArchitectureViz({ onClose, lastCommand }: K8Architectu
             </button>
           </div>
 
-          <div className="max-h-[calc(100vh-7rem)] overflow-y-auto p-4 md:max-h-[calc(100vh-8rem)] md:p-6 space-y-4">
+          <div className="max-h-[calc(100dvh-7rem)] overflow-y-auto p-4 space-y-4 sm:max-h-[calc(100vh-7rem)] md:max-h-[calc(100vh-8rem)] md:p-6">
           <div>
             <p className="text-sm text-gray-400 mt-1">
               This is a conceptual map of a small cluster and how common{" "}

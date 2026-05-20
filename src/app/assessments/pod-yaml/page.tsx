@@ -109,7 +109,7 @@ export default function PodYamlAssessmentPage() {
   useEffect(() => {
     setTaskStatus((prev) => deriveYamlTasks(yaml, prev));
   }, [yaml]);
-  const journeyId = "kubernetes:pod-yaml";
+  const journeyId = "assessment:pod-yaml";
   const isCompleted =
     profile?.completed.some((item) => item.id === journeyId) ?? false;
 
@@ -128,6 +128,28 @@ export default function PodYamlAssessmentPage() {
       kind: "assessment",
     });
   }, [allTasksDone, isCompleted, journeyId, markCompleted, profile, lesson]);
+
+  useEffect(() => {
+    if (!lesson) return;
+    setYaml(lesson.code);
+    setTaskStatus({
+      "label-tier-frontend": false,
+      "image-updated": false,
+      "apply-pod": false,
+      "get-pods": false,
+    });
+    setLastCommand(null);
+  }, [lesson]);
+
+  useEffect(() => {
+    if (!isCompleted) return;
+    setTaskStatus({
+      "label-tier-frontend": true,
+      "image-updated": true,
+      "apply-pod": true,
+      "get-pods": true,
+    });
+  }, [isCompleted]);
 
   const handleCommand = (cmd: string) => {
     setLastCommand(cmd);
