@@ -5,14 +5,24 @@ import {
   kubernetesScenarios,
   scenarioDifficultyOrder,
 } from "@/data/kubernetesScenarios";
+import {
+  terraformDifficultyOrder,
+  terraformScenarios,
+} from "@/data/terraformScenarios";
 
 export default function AssessmentsPage() {
   const kubernetesAssessmentIds = new Set(["intro", "kubectl-get"]);
   const codingAssessmentIds = new Set(["hello", "variables", "functions"]);
-  const scenariosByDifficulty = scenarioDifficultyOrder
+  const k8ScenariosByDifficulty = scenarioDifficultyOrder
     .map((difficulty) => ({
       difficulty,
       items: kubernetesScenarios.filter((scenario) => scenario.difficulty === difficulty),
+    }))
+    .filter((group) => group.items.length > 0);
+  const tfScenariosByDifficulty = terraformDifficultyOrder
+    .map((difficulty) => ({
+      difficulty,
+      items: terraformScenarios.filter((scenario) => scenario.difficulty === difficulty),
     }))
     .filter((group) => group.items.length > 0);
 
@@ -46,7 +56,7 @@ export default function AssessmentsPage() {
               situation.
             </p>
             <ul className="space-y-3">
-              {scenariosByDifficulty.map((group) => (
+              {k8ScenariosByDifficulty.map((group) => (
                 <li key={group.difficulty} className="rounded-lg border border-gray-800 bg-[#0f141b] p-3">
                   <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
                     {group.difficulty}
@@ -107,6 +117,44 @@ export default function AssessmentsPage() {
                   </p>
                 </Link>
               </li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-white mb-2">Terraform exams</h2>
+            <p className="text-[13px] text-gray-400 mb-3">
+              Exam-style checks using the simulated{" "}
+              <code className="text-gray-300">terraform</code> CLI. Also listed under{" "}
+              <Link href="/learn/terraform" className="text-[#d29922] hover:underline">
+                Learn Terraform → Scenarios
+              </Link>
+              .
+            </p>
+            <ul className="space-y-3">
+              {tfScenariosByDifficulty.map((group) => (
+                <li key={`tf-${group.difficulty}`} className="rounded-lg border border-gray-800 bg-[#0f141b] p-3">
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                    {group.difficulty}
+                  </p>
+                  <ul className="space-y-2">
+                    {group.items.map((scenario) => (
+                      <li key={scenario.id}>
+                        <Link
+                          prefetch={false}
+                          href={`/assessments/scenarios/${scenario.id}`}
+                          className="block rounded-lg border border-[#d29922]/40 bg-[#1a1408]/30 p-4 text-white hover:border-[#d29922]/70"
+                        >
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-[#d29922]">
+                            Terraform exam
+                          </p>
+                          <p className="mt-1 font-medium">{scenario.title}</p>
+                          <p className="mt-1 text-[13px] text-gray-400">{scenario.description}</p>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ))}
             </ul>
           </section>
 

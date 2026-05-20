@@ -9,6 +9,12 @@ import {
   kubernetesScenarios,
   topicProgressId,
 } from "@/data/kubernetesScenarios";
+import { terraformLessons } from "@/data/terraformLessons";
+import {
+  getTerraformTopicsInTeachingOrder,
+  terraformScenarios,
+  terraformTopicProgressId,
+} from "@/data/terraformScenarios";
 
 export default function JourneyPage() {
   const { profile, status } = useUserProgress();
@@ -213,6 +219,115 @@ export default function JourneyPage() {
                     </Link>
                   </div>
                 </div>
+              </div>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-semibold text-white mb-2">Terraform lessons</h2>
+              <div className="divide-y divide-gray-800 rounded-lg border border-gray-800 bg-[#050810]">
+                {terraformLessons.map((lesson) => {
+                  const id = `terraform:${lesson.id}`;
+                  const done = isCompleted(id);
+                  return (
+                    <div
+                      key={lesson.id}
+                      className="flex flex-col gap-2 px-4 py-3 text-sm text-gray-200 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div>
+                        <p className="font-medium text-white">{lesson.title}</p>
+                        <p className="text-[12px] text-gray-400">{lesson.description}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[11px] ${
+                            done ? "bg-[#1f6f3f] text-[#c9fdd7]" : "bg-gray-800 text-gray-300"
+                          }`}
+                        >
+                          {done ? "Completed" : "Not completed"}
+                        </span>
+                        <Link
+                          href={`/learn/terraform/${lesson.id}`}
+                          className="text-[11px] text-[#d29922] hover:underline"
+                        >
+                          Open
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-semibold text-white mb-2">Terraform scenarios</h2>
+              <div className="divide-y divide-gray-800 rounded-lg border border-gray-800 bg-[#050810]">
+                {getTerraformTopicsInTeachingOrder().map((topic) => {
+                  const id = terraformTopicProgressId(topic.id);
+                  const done = isCompleted(id);
+                  const title = topic.title.replace(/^Scenario:\s*/i, "").trim();
+                  return (
+                    <div
+                      key={topic.id}
+                      className="flex flex-col gap-2 px-4 py-3 text-sm text-gray-200 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div>
+                        <p className="font-medium text-white">{title}</p>
+                        <p className="text-[12px] text-gray-400">{topic.description}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[11px] ${
+                            done ? "bg-[#1f6f3f] text-[#c9fdd7]" : "bg-gray-800 text-gray-300"
+                          }`}
+                        >
+                          {done ? "Completed" : "Not completed"}
+                        </span>
+                        <Link
+                          href={`/learn/terraform/topics/${topic.id}`}
+                          className="text-[11px] text-[#d29922] hover:underline"
+                        >
+                          Open
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-semibold text-white mb-2">Terraform exams</h2>
+              <div className="divide-y divide-gray-800 rounded-lg border border-gray-800 bg-[#050810]">
+                {terraformScenarios.map((scenario) => {
+                  const id = `terraform-scenario:${scenario.id}`;
+                  const done = isCompleted(id);
+                  return (
+                    <div
+                      key={scenario.id}
+                      className="flex flex-col gap-2 px-4 py-3 text-sm text-gray-200 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div>
+                        <p className="font-medium text-white">{scenario.title}</p>
+                        <p className="text-[12px] text-gray-400">{scenario.description}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[11px] ${
+                            done ? "bg-[#1f6f3f] text-[#c9fdd7]" : "bg-gray-800 text-gray-300"
+                          }`}
+                        >
+                          {done ? "Completed" : "Not completed"}
+                        </span>
+                        <Link
+                          href={`/assessments/scenarios/${scenario.id}`}
+                          className="text-[11px] text-[#d29922] hover:underline"
+                        >
+                          Open
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </section>
 

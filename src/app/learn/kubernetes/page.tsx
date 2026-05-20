@@ -77,13 +77,14 @@ export default function KubernetesTrackPage() {
           })}
         </ul>
         <section className="mt-8">
-          <h2 className="mb-2 text-lg font-semibold text-white">Real-world topics (read first)</h2>
+          <h2 className="mb-2 text-lg font-semibold text-white">Kubernetes scenarios</h2>
           <p className="mb-4 text-xs text-gray-400">
-            Topics unlock in sequence: finish every practice step in the topic before yours. Use{" "}
-            <Link href="/" className="text-[#58a6ff] hover:underline">
-              Home → Exams
-            </Link>{" "}
-            when you want a graded check. Sign in so completions are saved and the chain unlocks.
+            Practice real on-call workflows step by step (simulated kubectl + drag-and-drop). Scenarios
+            unlock in order. For graded exams, see{" "}
+            <Link href="/exams" className="text-[#58a6ff] hover:underline">
+              Exams
+            </Link>
+            . Sign in so completions are saved.
           </p>
           <div className="space-y-6">
             {["Beginner", "On-call", "Production", "Security/Cost"].map((difficulty) => {

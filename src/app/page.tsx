@@ -31,6 +31,11 @@ const primaryActions = [
 
 const secondaryActions = [
   {
+    href: "/learn/terraform",
+    title: "Learn Terraform",
+    description: "Infrastructure as code — HCL lessons and real-world scenarios.",
+  },
+  {
     href: "/learn/coding",
     title: "Learn to Code",
     description: "Optional JavaScript / Node track with editor and terminal.",

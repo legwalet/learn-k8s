@@ -3,8 +3,8 @@ const nextConfig = {
   transpilePackages: ['@webcontainer/api'],
   // COOP + COEP for WebContainers are set in middleware only under /learn/coding/*
   webpack: (config, { dev, isServer }) => {
-    // Avoid stale webpack chunk graphs in `next dev` (e.g. ENOENT ./331.js, a[d] is not a function).
-    if (dev && !isServer) {
+    if (dev) {
+      // Stale chunk graphs in `next dev` (ENOENT ./331.js, __webpack_modules__[id] is not a function).
       config.cache = false;
       config.optimization = {
         ...config.optimization,
