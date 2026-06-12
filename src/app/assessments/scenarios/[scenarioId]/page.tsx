@@ -10,6 +10,7 @@ import { useUserProgress } from "@/components/UserProgressContext";
 import { findScenarioById, getScenarioJourneyId } from "@/data/scenarioLookup";
 import { getNextIncompleteJourneyHref } from "@/data/kubernetesScenarios";
 import { getNextIncompleteTerraformJourneyHref } from "@/data/terraformScenarios";
+import { getCurrentTask } from "@/lib/sequentialTasks";
 
 const DragDropAssessmentClient = dynamic(
   () => import("@/components/DragDropAssessment"),
@@ -68,10 +69,7 @@ export default function ScenarioAssessmentPage() {
   const commands = useMemo(() => scenario?.commands ?? [], [scenario?.commands]);
   const tasks = useMemo(() => scenario?.tasks ?? [], [scenario?.tasks]);
 
-  const currentTask = useMemo(
-    () => tasks.find((task) => !completedTasks[task.id]) ?? null,
-    [tasks, completedTasks]
-  );
+  const currentTask = getCurrentTask(tasks, completedTasks);
   const totalTasks = tasks.length;
   const completedCount = tasks.filter((task) => completedTasks[task.id]).length;
   const allDone = totalTasks > 0 && completedCount === totalTasks;

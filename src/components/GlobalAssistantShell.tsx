@@ -9,6 +9,7 @@ import {
   type FormEvent,
 } from "react";
 import dynamic from "next/dynamic";
+import ClientErrorBoundary from "@/components/ClientErrorBoundary";
 import { UserProgressProvider } from "@/components/UserProgressContext";
 import type { AssistantChatMessage } from "@/types/assistant";
 
@@ -107,7 +108,7 @@ export default function GlobalAssistantShell({ children }: { children: ReactNode
   return (
     <AssistantContext.Provider value={{ context, setContext }}>
       <UserProgressProvider>
-        {children}
+        <ClientErrorBoundary>{children}</ClientErrorBoundary>
 
         <div className="fixed bottom-3 right-3 z-50 sm:bottom-4 sm:right-4">
           {!open && (

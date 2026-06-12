@@ -14,6 +14,7 @@ import {
   terraformScenarios,
   terraformTopicProgressId,
 } from "@/data/terraformScenarios";
+import { getCurrentTask } from "@/lib/sequentialTasks";
 
 const DragDropAssessmentClient = dynamic(
   () => import("@/components/DragDropAssessment"),
@@ -91,7 +92,7 @@ export default function KubernetesTopicTeachingPage() {
   const totalTasks = tasks.length;
   const completedCount = tasks.filter((t) => completedTasks[t.id]).length;
   const allTasksDone = totalTasks > 0 && completedCount === totalTasks;
-  const currentTask = tasks.find((task) => !completedTasks[task.id]) ?? null;
+  const currentTask = getCurrentTask(tasks, completedTasks);
 
   const nextTopicHref = topic ? getNextTerraformTeachingTopicHref(topic.id) : null;
 

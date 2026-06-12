@@ -7,6 +7,7 @@ import { kubernetesLessons } from "@/data/lessons";
 import { useUserProgress } from "@/components/UserProgressContext";
 import { useLessonAssistantContext } from "@/components/GlobalAssistantShell";
 import SimulatedK8Terminal from "@/components/SimulatedK8Terminal";
+import { getCurrentTask } from "@/lib/sequentialTasks";
 
 const CodeEditorClient = dynamic(() => import("@/components/CodeEditor"), {
   ssr: false,
@@ -50,22 +51,26 @@ const TASKS: Task[] = [
   },
 ];
 
-function deriveYamlTasks(
-  yaml: string,
-  prev: Record<PodYamlTaskId, boolean>
-): Record<PodYamlTaskId, boolean> {
-  const next: Record<PodYamlTaskId, boolean> = { ...prev };
+function yamlSatisfiesTask(taskId: PodYamlTaskId, yaml: string): boolean {
   const trimmed = yaml.trim();
+  if (taskId === "label-tier-frontend") return /tier:\s*frontend/.test(trimmed);
+  if (taskId === "image-updated") return /image:\s*nginx:1\.27-alpine/.test(trimmed);
+  return false;
+}
 
-  if (/tier:\s*frontend/.test(trimmed)) {
-    next["label-tier-frontend"] = true;
+function terminalSatisfiesTask(taskId: PodYamlTaskId, normalized: string): boolean {
+  if (taskId === "apply-pod") {
+    return (
+      normalized === "kubectl apply -f pod.yaml" ||
+      normalized.startsWith("kubectl apply -f pod.yaml ")
+    );
   }
-
-  if (/image:\s*nginx:1\.27-alpine/.test(trimmed)) {
-    next["image-updated"] = true;
+  if (taskId === "get-pods") {
+    return (
+      normalized === "kubectl get pods" || normalized.startsWith("kubectl get pods ")
+    );
   }
-
-  return next;
+  return false;
 }
 
 function normalize(cmd: string): string {
@@ -106,9 +111,16 @@ export default function PodYamlAssessmentPage() {
     );
   }, [lesson, setContext]);
 
+  const currentTask = getCurrentTask(TASKS, taskStatus);
+
   useEffect(() => {
-    setTaskStatus((prev) => deriveYamlTasks(yaml, prev));
-  }, [yaml]);
+    if (!currentTask || currentTask.kind !== "yaml") return;
+    if (!yamlSatisfiesTask(currentTask.id, yaml)) return;
+    setTaskStatus((prev) =>
+      prev[currentTask.id] ? prev : { ...prev, [currentTask.id]: true }
+    );
+  }, [yaml, currentTask]);
+
   const journeyId = "assessment:pod-yaml";
   const isCompleted =
     profile?.completed.some((item) => item.id === journeyId) ?? false;
@@ -154,26 +166,11 @@ export default function PodYamlAssessmentPage() {
   const handleCommand = (cmd: string) => {
     setLastCommand(cmd);
     const normalized = normalize(cmd);
-
-    setTaskStatus((prev) => {
-      const next: Record<PodYamlTaskId, boolean> = { ...prev };
-
-      if (
-        normalized === "kubectl apply -f pod.yaml" ||
-        normalized.startsWith("kubectl apply -f pod.yaml ")
-      ) {
-        next["apply-pod"] = true;
-      }
-
-      if (
-        normalized === "kubectl get pods" ||
-        normalized.startsWith("kubectl get pods ")
-      ) {
-        next["get-pods"] = true;
-      }
-
-      return next;
-    });
+    if (!currentTask || currentTask.kind !== "terminal") return;
+    if (!terminalSatisfiesTask(currentTask.id, normalized)) return;
+    setTaskStatus((prev) =>
+      prev[currentTask.id] ? prev : { ...prev, [currentTask.id]: true }
+    );
   };
 
   if (!lesson) {
@@ -245,14 +242,24 @@ export default function PodYamlAssessmentPage() {
             </p>
           )}
           <ul className="mt-1 space-y-1">
-            {TASKS.map((task) => (
-              <li key={task.id} className="flex items-start gap-2">
-                <span className="mt-[2px] text-[11px]">
-                  {taskStatus[task.id] ? "✅" : "⬜"}
-                </span>
-                <span className="text-[11px] text-gray-200">{task.label}</span>
-              </li>
-            ))}
+            {TASKS.map((task) => {
+              const done = taskStatus[task.id];
+              const isCurrent = !done && currentTask?.id === task.id;
+              return (
+                <li key={task.id} className="flex items-start gap-2">
+                  <span className="mt-[2px] text-[11px]">
+                    {done ? "✅" : isCurrent ? "➡️" : "🔒"}
+                  </span>
+                  <span
+                    className={`text-[11px] ${
+                      done ? "text-gray-200" : isCurrent ? "text-[#e5ffef]" : "text-gray-500"
+                    }`}
+                  >
+                    {task.label}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         </div>
 

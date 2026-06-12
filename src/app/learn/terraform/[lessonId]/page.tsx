@@ -5,10 +5,12 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import SimulatedTerraformTerminal from "@/components/SimulatedTerraformTerminal";
+import QuestProgressPanel from "@/components/QuestProgressPanel";
 import { useLessonAssistantContext } from "@/components/GlobalAssistantShell";
 import { terraformLessons } from "@/data/terraformLessons";
 import { useUserProgress } from "@/components/UserProgressContext";
 import { getNextIncompleteTerraformJourneyHref } from "@/data/terraformScenarios";
+import { getCurrentTask } from "@/lib/sequentialTasks";
 
 const CodeEditorClient = dynamic(() => import("@/components/CodeEditor"), {
   ssr: false,
@@ -74,9 +76,6 @@ function deriveHclTasks(lessonId: string, code: string): Partial<Record<string, 
   return out;
 }
 
-const panelClass =
-  "mb-4 flex flex-col gap-2 rounded-lg border border-[#d29922]/40 bg-[#050810] px-3 py-2 text-xs text-gray-200";
-
 export default function TerraformLessonPage() {
   const params = useParams();
   const lessonId = params?.lessonId as string;
@@ -116,7 +115,7 @@ export default function TerraformLessonPage() {
   const totalTasks = assessmentTasks.length;
   const completedCount = assessmentTasks.filter((t) => completedTasks[t.id]).length;
   const allTasksDone = totalTasks > 0 && completedCount === totalTasks;
-  const currentTask = assessmentTasks.find((task) => !completedTasks[task.id]) ?? null;
+  const currentTask = getCurrentTask(assessmentTasks, completedTasks);
 
   const completedJourneyIds = useMemo(
     () => new Set(profile?.completed.map((item) => item.id) ?? []),
@@ -141,19 +140,14 @@ export default function TerraformLessonPage() {
   useEffect(() => {
     if (!lesson || assessmentTasks.length === 0) return;
     const hclTasks = deriveHclTasks(lesson.id, code);
-    if (Object.keys(hclTasks).length === 0) return;
     setCompletedTasks((prev) => {
-      let changed = false;
-      const next = { ...prev };
-      for (const [id, done] of Object.entries(hclTasks)) {
-        if (done && !next[id]) {
-          next[id] = true;
-          changed = true;
-        }
-      }
-      return changed ? next : prev;
+      const current = getCurrentTask(assessmentTasks, prev);
+      if (!current) return prev;
+      const done = hclTasks[current.id];
+      if (!done || prev[current.id]) return prev;
+      return { ...prev, [current.id]: true };
     });
-  }, [lesson, code, assessmentTasks.length]);
+  }, [lesson, code, assessmentTasks]);
 
   useEffect(() => {
     if (!lesson || !profile || isCompleted || !allTasksDone) return;
@@ -191,37 +185,25 @@ export default function TerraformLessonPage() {
         <h1 className="mb-1 text-2xl font-bold text-white">{lesson.title}</h1>
         <p className="mb-4 text-sm text-gray-400">{lesson.description}</p>
 
-        {assessmentTasks.length > 0 && (
-          <div className={panelClass}>
-            <span className="text-[11px] text-gray-400">
-              Tasks: {completedCount} / {totalTasks}
-              {isCompleted ? " · Lesson complete" : ""}
-            </span>
-            <ul className="mt-1 space-y-1">
-              {assessmentTasks.map((task) => {
-                const done = completedTasks[task.id];
-                const isCurrent = !done && currentTask?.id === task.id;
-                return (
-                  <li key={task.id} className="flex gap-2 text-[11px]">
-                    <span>{done ? "✅" : isCurrent ? "➡️" : "🔒"}</span>
-                    <span className={done || isCurrent ? "text-gray-200" : "text-gray-500"}>
-                      {task.label}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-            {taskFeedback && <p className="text-[11px] text-gray-400">{taskFeedback}</p>}
-            {(allTasksDone || isCompleted) && nextJourneyHref && (
-              <Link
-                href={nextJourneyHref}
-                className="mt-2 inline-flex rounded bg-[#1f6feb] px-2.5 py-1 text-[11px] font-medium text-white hover:bg-[#388bfd]"
-              >
-                Next step →
-              </Link>
-            )}
-          </div>
-        )}
+        <QuestProgressPanel
+          theme="terraform"
+          title="Infra mission"
+          tasks={assessmentTasks}
+          completedTasks={completedTasks}
+          currentTaskId={currentTask?.id ?? null}
+          isCompleted={isCompleted}
+          xpReward={10}
+          feedback={taskFeedback}
+          nextHref={nextJourneyHref}
+          intro={
+            <>
+              <span className="font-semibold text-gray-300">Scenario: </span>
+              Build and run your Terraform config below. Use{" "}
+              <code className="text-[#d29922]">terraform</code> commands in the terminal to clear
+              each step in order.
+            </>
+          }
+        />
 
         <div
           className="prose prose-invert prose-sm mb-6 max-w-none rounded-lg border border-gray-700 bg-[#161b22] p-4 text-gray-300"

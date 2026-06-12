@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import SimulatedK8Terminal from "@/components/SimulatedK8Terminal";
+import QuestProgressPanel from "@/components/QuestProgressPanel";
 import { useUserProgress } from "@/components/UserProgressContext";
 import {
   type ScenarioCommand,
@@ -14,6 +15,7 @@ import {
   kubernetesScenarios,
   topicProgressId,
 } from "@/data/kubernetesScenarios";
+import { getCurrentTask } from "@/lib/sequentialTasks";
 
 const DragDropAssessmentClient = dynamic(
   () => import("@/components/DragDropAssessment"),
@@ -91,7 +93,7 @@ export default function KubernetesTopicTeachingPage() {
   const totalTasks = tasks.length;
   const completedCount = tasks.filter((t) => completedTasks[t.id]).length;
   const allTasksDone = totalTasks > 0 && completedCount === totalTasks;
-  const currentTask = tasks.find((task) => !completedTasks[task.id]) ?? null;
+  const currentTask = getCurrentTask(tasks, completedTasks);
 
   const nextTopicHref = topic ? getNextTeachingTopicHref(topic.id) : null;
 
@@ -243,79 +245,40 @@ export default function KubernetesTopicTeachingPage() {
           </ol>
         </div>
 
-        {tasks.length > 0 && (
-          <div className={scenarioPanel}>
-            <div className="flex flex-wrap items-center gap-2">
-              <span
-                className={`rounded-full px-2 py-0.5 text-[11px] ${
-                  topicDone
-                    ? "bg-[#1f6f3f] text-[#c9fdd7]"
-                    : allTasksDone
-                      ? "bg-[#1f6f3f]/80 text-[#e5ffef]"
-                      : "bg-gray-800 text-gray-300"
-                }`}
-              >
-                {topicDone
-                  ? "Topic practice complete"
-                  : allTasksDone
-                    ? "Saving progress…"
-                    : "Practice in progress"}
-              </span>
-              <span className="text-[11px] text-gray-400">
-                Steps completed: {completedCount} / {totalTasks}
-              </span>
-            </div>
-            <p className="text-[11px] text-gray-400">
+        <QuestProgressPanel
+          theme="k8"
+          title="Scenario drill"
+          tasks={tasks}
+          completedTasks={completedTasks}
+          currentTaskId={currentTask?.id ?? null}
+          isCompleted={topicDone}
+          xpReward={10}
+          feedback={taskFeedback}
+          nextHref={profile ? nextTopicHref : null}
+          intro={
+            <>
               <span className="font-semibold text-gray-300">Scenario: </span>
               Run the right <code className="text-[#3fb950]">kubectl</code> command for each step in
-              order. Use drag-and-drop or the simulated terminal. The next topic stays locked until
-              every step here is correct.
-            </p>
-            <ul className="mt-1 space-y-1">
-              {tasks.map((task) => {
-                const done = completedTasks[task.id];
-                const isCurrent = !done && currentTask?.id === task.id;
-                return (
-                  <li key={task.id} className="flex items-start gap-2">
-                    <span className="mt-[2px] text-[11px]">
-                      {done ? "✅" : isCurrent ? "➡️" : "🔒"}
-                    </span>
-                    <span
-                      className={`text-[11px] ${
-                        done ? "text-gray-200" : isCurrent ? "text-[#e5ffef]" : "text-gray-500"
-                      }`}
-                    >
-                      {task.label}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              {taskFeedback && <p className="text-[11px] text-gray-400">{taskFeedback}</p>}
-              {allTasksDone && !profile && (
-                <p className="text-[11px] text-amber-300/90">
-                  Sign in on Learn Kubernetes to save this completion and unlock the next topic.
-                </p>
-              )}
-              {profile && nextTopicHref && (topicDone || allTasksDone) && (
-                <Link
-                  href={nextTopicHref}
-                  className="inline-flex rounded bg-[#1f6feb] px-2.5 py-1 text-[11px] font-medium text-white hover:bg-[#388bfd]"
-                >
-                  Next topic →
-                </Link>
-              )}
-              {profile && !nextTopicHref && (topicDone || allTasksDone) && (
-                <span className="text-[11px] text-[#c9fdd7]">
-                  You finished the teaching topic track. Try{" "}
-                  <Link href="/exams" className="underline hover:text-white">
-                    Exams
-                  </Link>{" "}
-                  when ready.
-                </span>
-              )}
-            </div>
+              order. The next topic stays locked until every step here is correct.
+            </>
+          }
+        />
+        {tasks.length > 0 && (topicDone || allTasksDone) && (
+          <div className="-mt-2 mb-4 flex flex-wrap items-center gap-2">
+            {allTasksDone && !profile && (
+              <p className="text-[11px] text-amber-300/90">
+                Sign in on Learn Kubernetes to save this completion and unlock the next topic.
+              </p>
+            )}
+            {profile && !nextTopicHref && (
+              <span className="text-[11px] text-[#c9fdd7]">
+                🎓 You finished the teaching topic track. Try{" "}
+                <Link href="/exams" className="underline hover:text-white">
+                  Exams
+                </Link>{" "}
+                when ready.
+              </span>
+            )}
           </div>
         )}
 

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { codingLessons } from "@/data/lessons";
+import { getCurrentTask } from "@/lib/sequentialTasks";
+import QuestProgressPanel from "@/components/QuestProgressPanel";
 import { useLessonAssistantContext } from "@/components/GlobalAssistantShell";
 import { useUserProgress } from "@/components/UserProgressContext";
 
@@ -179,7 +181,7 @@ export default function CodingLessonPage() {
   const totalTasks = assessmentTasks.length;
   const completedCount = assessmentTasks.filter((t) => taskStatus[t.id]).length;
   const allTasksDone = totalTasks > 0 && completedCount === totalTasks;
-  const currentTask = assessmentTasks.find((task) => !taskStatus[task.id]) ?? null;
+  const currentTask = getCurrentTask(assessmentTasks, taskStatus);
 
   useEffect(() => {
     if (!lesson || assessmentTasks.length === 0 || !isCompleted) return;
@@ -259,62 +261,23 @@ export default function CodingLessonPage() {
         </div>
         <h1 className="text-2xl font-bold text-white mb-1">{lesson.title}</h1>
         <p className="text-gray-400 text-sm mb-2">{lesson.description}</p>
-        {assessmentTasks.length > 0 && (
-          <div className="mb-4 flex flex-col gap-2 rounded-lg border border-[#58a6ff]/40 bg-[#050810] px-3 py-2 text-xs text-gray-200">
-            <div className="flex flex-wrap items-center gap-2">
-              <span
-                className={`rounded-full px-2 py-0.5 text-[11px] ${
-                  isCompleted
-                    ? "bg-[#1f6f3f] text-[#c9fdd7]"
-                    : allTasksDone
-                      ? "bg-[#1f6f3f]/80 text-[#e5ffef]"
-                      : "bg-gray-800 text-gray-300"
-                }`}
-              >
-                {isCompleted
-                  ? "Coding test passed"
-                  : allTasksDone
-                    ? "All tasks complete — saving…"
-                    : "Coding test in progress"}
-              </span>
-              <span className="text-[11px] text-gray-400">
-                Tasks completed: {completedCount} / {totalTasks}
-              </span>
-            </div>
-            <p className="text-[11px] text-gray-400">
-              Scenario: imagine you&apos;re adding a small feature to a real app. Use the editor and
-              terminal to satisfy each requirement below. The test only passes once every task is
-              met and you run the code from the editor.
-            </p>
-            <ul className="mt-1 space-y-1">
-              {assessmentTasks.map((task) => {
-                const done = taskStatus[task.id];
-                const isCurrent = !done && currentTask?.id === task.id;
-                return (
-                  <li key={task.id} className="flex items-start gap-2">
-                    <span className="mt-[2px] text-[11px]">
-                      {done ? "✅" : isCurrent ? "➡️" : "🔒"}
-                    </span>
-                    <span
-                      className={`text-[11px] ${
-                        done
-                          ? "text-gray-200"
-                          : isCurrent
-                            ? "text-[#e5ffef]"
-                            : "text-gray-500"
-                      }`}
-                    >
-                      {task.label}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-            {assessmentMessage && (
-              <p className="mt-1 text-[11px] text-gray-400">{assessmentMessage}</p>
-            )}
-          </div>
-        )}
+        <QuestProgressPanel
+          theme="coding"
+          title="Code challenge"
+          tasks={assessmentTasks}
+          completedTasks={taskStatus}
+          currentTaskId={currentTask?.id ?? null}
+          isCompleted={isCompleted}
+          xpReward={25}
+          feedback={assessmentMessage}
+          intro={
+            <>
+              <span className="font-semibold text-gray-300">Scenario: </span>
+              Imagine you&apos;re adding a small feature to a real app. Use the editor and terminal
+              to satisfy each requirement below, then run your code from the editor.
+            </>
+          }
+        />
 
         <div
           className="prose prose-invert prose-sm max-w-none mb-6 p-4 rounded-lg bg-[#161b22] border border-gray-700 text-gray-300"

@@ -130,6 +130,9 @@ export default function RootLayout({
       }
     } catch (_) {}
   });
+  try {
+    sessionStorage.removeItem(BUNDLE_RELOAD_KEY);
+  } catch (_) {}
 })();
 `,
           }}

@@ -5,12 +5,14 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import SimulatedK8Terminal from "@/components/SimulatedK8Terminal";
+import QuestProgressPanel from "@/components/QuestProgressPanel";
 import { useLessonAssistantContext } from "@/components/GlobalAssistantShell";
 import { kubernetesLessons } from "@/data/lessons";
 import { useUserProgress } from "@/components/UserProgressContext";
 import {
   getNextIncompleteJourneyHref,
 } from "@/data/kubernetesScenarios";
+import { getCurrentTask } from "@/lib/sequentialTasks";
 
 const CodeEditorClient = dynamic(() => import("@/components/CodeEditor"), {
   ssr: false,
@@ -259,7 +261,7 @@ export default function KubernetesLessonPage() {
   const totalTasks = assessmentTasks.length;
   const completedCount = assessmentTasks.filter((t) => completedTasks[t.id]).length;
   const allTasksDone = totalTasks > 0 && completedCount === totalTasks;
-  const currentTask = assessmentTasks.find((task) => !completedTasks[task.id]) ?? null;
+  const currentTask = getCurrentTask(assessmentTasks, completedTasks);
   const completedJourneyIds = useMemo(
     () => new Set(profile?.completed.map((item) => item.id) ?? []),
     [profile?.completed]
@@ -300,19 +302,14 @@ export default function KubernetesLessonPage() {
   useEffect(() => {
     if (!lesson || assessmentTasks.length === 0) return;
     const yamlTasks = deriveYamlLessonTasks(lesson.id, code);
-    if (Object.keys(yamlTasks).length === 0) return;
     setCompletedTasks((prev) => {
-      let changed = false;
-      const next = { ...prev };
-      for (const [id, done] of Object.entries(yamlTasks)) {
-        if (done && !next[id]) {
-          next[id] = true;
-          changed = true;
-        }
-      }
-      return changed ? next : prev;
+      const current = getCurrentTask(assessmentTasks, prev);
+      if (!current) return prev;
+      const done = yamlTasks[current.id];
+      if (!done || prev[current.id]) return prev;
+      return { ...prev, [current.id]: true };
     });
-  }, [lesson, code, assessmentTasks.length]);
+  }, [lesson, code, assessmentTasks]);
 
   // Lessons page = lesson progress only (counts as a lesson completion, same journey id).
   useEffect(() => {
@@ -398,71 +395,25 @@ export default function KubernetesLessonPage() {
             </p>
           </div>
         )}
-        {assessmentTasks.length > 0 && (
-          <div className={lessonScenarioPanelClass}>
-            <div className="flex flex-wrap items-center gap-2">
-              <span
-                className={`rounded-full px-2 py-0.5 text-[11px] ${
-                  isCompleted
-                    ? "bg-[#1f6f3f] text-[#c9fdd7]"
-                    : allTasksDone
-                      ? "bg-[#1f6f3f]/80 text-[#e5ffef]"
-                      : "bg-gray-800 text-gray-300"
-                }`}
-              >
-                {isCompleted
-                  ? "Lesson practice complete"
-                  : allTasksDone
-                    ? "All tasks complete — saving…"
-                    : "Lesson practice in progress"}
-              </span>
-              <span className="text-[11px] text-gray-400">
-                Tasks completed: {completedCount} / {totalTasks}
-              </span>
-            </div>
-            <p className="text-[11px] text-gray-400">
+        <QuestProgressPanel
+          theme="k8"
+          title="Cluster mission"
+          tasks={assessmentTasks}
+          completedTasks={completedTasks}
+          currentTaskId={currentTask?.id ?? null}
+          isCompleted={isCompleted}
+          xpReward={10}
+          feedback={taskFeedback}
+          nextHref={nextJourneyHref}
+          intro={
+            <>
               <span className="font-semibold text-gray-300">Scenario: </span>
-              You are practicing on a simulated cluster as part of this lesson. Use{" "}
-              <code className="text-[#3fb950]">kubectl</code> in the terminal (or drag-and-drop below)
-              to complete each step in order. This lesson is marked complete once every task below is done.
-            </p>
-            <ul className="mt-1 space-y-1">
-              {assessmentTasks.map((task) => {
-                const done = completedTasks[task.id];
-                const isCurrent = !done && currentTask?.id === task.id;
-                return (
-                  <li key={task.id} className="flex items-start gap-2">
-                    <span className="mt-[2px] text-[11px]">
-                      {done ? "✅" : isCurrent ? "➡️" : "🔒"}
-                    </span>
-                    <span
-                      className={`text-[11px] ${
-                        done
-                          ? "text-gray-200"
-                          : isCurrent
-                            ? "text-[#e5ffef]"
-                            : "text-gray-500"
-                      }`}
-                    >
-                      {task.label}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-            <div className="flex flex-wrap items-center gap-2">
-              {taskFeedback && <p className="text-[11px] text-gray-400">{taskFeedback}</p>}
-              {(allTasksDone || isCompleted) && nextJourneyHref && (
-                <Link
-                  href={nextJourneyHref}
-                  className="inline-flex rounded bg-[#1f6feb] px-2.5 py-1 text-[11px] font-medium text-white hover:bg-[#388bfd]"
-                >
-                  Next step →
-                </Link>
-              )}
-            </div>
-          </div>
-        )}
+              You are practicing on a simulated cluster. Use{" "}
+              <code className="text-[#3fb950]">kubectl</code> in the terminal (or drag-and-drop
+              below) to clear each step in order.
+            </>
+          }
+        />
 
         {assessmentTasks.length > 0 && assessmentOptions.length > 0 && (
           <div className="mb-4">
